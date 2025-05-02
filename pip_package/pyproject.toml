@@ -1,6 +1,6 @@
 [project]
 name = "formpix"
-version = "1.0.1"
+version = "1.0.3"
 description = "Client library for interacting with the FormPix API"
 authors = [{ name = "C. Smith", email = "csmith@ytech.edu" }]
 readme = "README.md"

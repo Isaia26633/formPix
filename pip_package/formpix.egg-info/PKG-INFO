@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: formpix
-Version: 1.0.1
+Version: 1.0.3
 Summary: Client library for interacting with the FormPix API
 Author-email: "C. Smith" <csmith@ytech.edu>
 License: MIT

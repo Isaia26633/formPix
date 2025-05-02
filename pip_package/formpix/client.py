@@ -1,4 +1,5 @@
 import requests
+from urllib.parse import urlencode
 
 FORM_PIX_URL = 'http://localhost:3000'
 API_KEY = None
@@ -31,24 +32,28 @@ def get_req_options():
     }
 
 def fill(color, start, length):
-    params = f"color={color}&start={start}&length={length}"
+    params = urlencode({'color': color, 'start': start, 'length': length})
     send_command('fill', params, get_req_options())
 
 def gradient(start_color, end_color, start, length):
-    params = f"startColor={start_color}&endColor={end_color}&start={start}&length={length}"
+    params = urlencode({'startColor': start_color, 'endColor': end_color, 'start': start, 'length': length})
     send_command('gradient', params, get_req_options())
 
 def set_pixel(location, color):
-    params = f"location={location}&color={color}"
+    params = urlencode({'location': location, 'color': color})
     send_command('setPixel', params, get_req_options())
 
 def set_pixels(pixels):
-    params = f"pixels={pixels}"
+    params = urlencode({'pixels': pixels})
     send_command('setPixels', params, get_req_options())
 
 def say(text, color, bgcolor):
-    params = f"text={text}&textColor={color}&backgroundColor={bgcolor}"
+    params = urlencode({'text': text, 'textColor': color, 'backgroundColor': bgcolor})
     send_command('say', params, get_req_options())
+
+def play_sound(sfx, bgm):
+    params = urlencode({'sfx': sfx, 'bgm': bgm})
+    send_command('playSound', params, get_req_options())
 
 def get_sounds(sound_type):
     get_options = {
@@ -60,10 +65,6 @@ def get_sounds(sound_type):
     }
     params = f"type={sound_type}"
     send_command('say', params, get_options)  # Assuming `say` was mistakenly reused
-
-def play_sound(sfx, bgm):
-    params = f"sfx={sfx}&bgm={bgm}"
-    send_command('playSound', params, get_req_options())
 
 # Example usage
 # login('http://localhost:3000', 'your-api-key')
