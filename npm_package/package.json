@@ -1,0 +1,23 @@
+{
+  "name": "formpix",
+  "version": "0.1.0",
+  "description": "A node package for easily handling the formPix API",
+  "main": "formpixapi.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/csmith1188/formPix.git"
+  },
+  "keywords": [
+    "formpix",
+    "formbar"
+  ],
+  "author": "C. Smith",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/csmith1188/formPix/issues"
+  },
+  "homepage": "https://github.com/csmith1188/formPix#readme"
+}
