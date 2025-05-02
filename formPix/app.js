@@ -576,7 +576,7 @@ app.use(async (req, res, next) => {
 
 		next()
 	} catch (err) {
-		res.status(500).json({ error: 'There was a server error try again' })
+		res.status(500).json({ error: err.message })
 		return
 	}
 })
@@ -628,11 +628,11 @@ app.post('/api/fill', (req, res) => {
 		length = Number(length)
 
 		// If textInterval exists and start + length is greater than the total bar pixels, clear the interval and fill the bar with black color
-		if (textInterval && start + length > config.barPixels) {
-			clearInterval(textInterval)
-			textInterval = null
-			fill(0x000000, config.barPixels)
-		}
+		// if (textInterval && start + length > config.barPixels) {
+		// 	clearInterval(textInterval)
+		// 	textInterval = null
+		// 	fill(0x000000, config.barPixels)
+		// }
 
 		// Fill the bar with the specified color, start, and length
 		fill(color, start, length)
@@ -643,7 +643,7 @@ app.post('/api/fill', (req, res) => {
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
 		// If any error occurs, send a 500 status code with 'error' as the response
-		res.status(500).json({ error: 'There was a server error try again' })
+		res.status(500).json({ error: err.message })
 	}
 })
 
@@ -692,11 +692,11 @@ app.post('/api/gradient', (req, res) => {
 		length = Number(length)
 
 		// If textInterval exists and start + length is greater than the total bar pixels, clear the interval and fill the bar with black color
-		if (textInterval && start + length > config.barPixels) {
-			clearInterval(textInterval)
-			textInterval = null
-			fill(0x000000, config.barPixels)
-		}
+		// if (textInterval && start + length > config.barPixels) {
+		// 	clearInterval(textInterval)
+		// 	textInterval = null
+		// 	fill(0x000000, config.barPixels)
+		// }
 
 		// Fill the bar with the specified startColor, start, and length
 		gradient(startColor, endColor, start, length)
@@ -706,7 +706,7 @@ app.post('/api/gradient', (req, res) => {
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
 		// If any error occurs, send a 500 status code with 'error' as the response
-		res.status(500).json({ error: 'There was a server error try again' })
+		res.status(500).json({ error: err.message })
 	}
 })
 
@@ -737,11 +737,11 @@ app.post('/api/setPixel', (req, res) => {
 		if (pixelNumber instanceof Error) throw pixelNumber
 
 		// If textInterval exists and pixelNumber is greater than or equal to the number of bar pixels, clear the interval and fill the bar with black color
-		if (textInterval && pixelNumber >= config.barPixels) {
-			clearInterval(textInterval);
-			textInterval = null;
-			fill(0x000000, config.barPixels);
-		}
+		// if (textInterval && pixelNumber >= config.barPixels) {
+		// 	clearInterval(textInterval);
+		// 	textInterval = null;
+		// 	fill(0x000000, config.barPixels);
+		// }
 
 		// Set the specified pixel with the specified color
 		pixels[pixelNumber] = color
@@ -753,7 +753,7 @@ app.post('/api/setPixel', (req, res) => {
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
 		// If an error occurs, send a 500 response with 'error'
-		res.status(500).json({ error: 'There was a server error try again' })
+		res.status(500).json({ error: err.message })
 	}
 })
 
@@ -807,23 +807,23 @@ app.post('/api/setPixels', (req, res) => {
 			if (pixelNumber instanceof Error) throw pixelNumber
 
 			// If textInterval exists and pixelNumber is greater than or equal to the number of bar pixels, clear the pixels on the board
-			if (textInterval && pixelNumber >= config.barPixels && !changedBoard) {
-				changedBoard = true
+			// if (textInterval && pixelNumber >= config.barPixels && !changedBoard) {
+			// 	changedBoard = true
 
-				for (let i = config.barPixels; i < tempPixels.length; i++) {
-					tempPixels[i] = 0x000000
-				}
-			}
+			// 	for (let i = config.barPixels; i < tempPixels.length; i++) {
+			// 		tempPixels[i] = 0x000000
+			// 	}
+			// }
 
 			// Set the specified pixel with the specified color
 			tempPixels[pixelNumber] = color
 		}
 
 		// If the board has been changed, clear the text interval
-		if (changedBoard) {
-			clearInterval(textInterval);
-			textInterval = null;
-		}
+		// if (changedBoard) {
+		// 	clearInterval(textInterval);
+		// 	textInterval = null;
+		// }
 
 		// Set the pixels array with the tempPixels array
 		pixels.set(tempPixels)
@@ -835,7 +835,7 @@ app.post('/api/setPixels', (req, res) => {
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
 		// If an error occurs, send a 500 response with 'error'
-		res.status(500).json({ error: 'There was a server error try again' })
+		res.status(500).json({ error: err.message })
 	}
 })
 
@@ -881,7 +881,7 @@ app.post('/api/say', (req, res) => {
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
 		// If an error occurs, send a 500 response with 'error'
-		res.status(500).json({ error: 'There was a server error try again' })
+		res.status(500).json({ error: err.message })
 	}
 })
 
@@ -895,7 +895,7 @@ app.get('/api/getSounds', (req, res) => {
 		else res.status(400).json({ error: 'Invalid type' })
 	} catch (err) {
 		// If an error occurs, send a 500 response with 'error'
-		res.status(500).json({ error: 'There was a server error try again' })
+		res.status(500).json({ error: err.message })
 	}
 })
 
@@ -913,10 +913,10 @@ app.post('/api/playSound', (req, res) => {
 		} else if (sound == true) {
 			res.status(200).json({ message: 'ok' })
 		}
-		else res.status(500).json({ error: 'There was a server error try again' })
+		else res.status(500).json({ error: err.message })
 	} catch (err) {
 		// If an error occurs, send a 500 response with 'error'
-		res.status(500).json({ error: 'There was a server error try again' })
+		res.status(500).json({ error: err.message })
 	}
 })
 
@@ -937,7 +937,7 @@ app.use((req, res, next) => {
 
 		res.status(404).json({ error: `The page ${urlPath} does not exist` })
 	} catch (err) {
-		res.status(500).json({ error: 'There was a server error try again' })
+		res.status(500).json({ error: err.message })
 	}
 })
 
