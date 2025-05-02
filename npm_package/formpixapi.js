@@ -6,16 +6,32 @@ function login(url, key) {
 	API_KEY = key;
 }
 
-function fill(color, start, length) {
+let reqOptions =
+{
+	method: 'POST',
+	headers: {
+		'API': API_KEY,
+		'Content-Type': 'application/json'
+	}
+};
 
-	let reqOptions =
-	{
-		method: 'POST',
-		headers: {
-			'API': API_KEY,
-			'Content-Type': 'application/json'
-		}
-	};
+function sendCommand(command, params, reqOptions) {
+	fetch(`${FORM_PIX_URL}/api/${endpoint}?${params}`, reqOptions)
+		.then((response) => {
+			// Convert received data to JSON
+			return response.json();
+		})
+		.then((data) => {
+			// Log the data if the request is successful
+			console.log(data);
+		})
+		.catch((err) => {
+			// If there's a problem, handle it...
+			if (err) console.log('connection closed due to errors:', err);
+		});
+}
+
+function fill(color, start, length) {
 
 	let params = new URLSearchParams({
 		color: color,
@@ -23,30 +39,39 @@ function fill(color, start, length) {
 		length: length
 	}).toString()
 
-	fetch(`${FORM_PIX_URL}/api/fill?${params}`, reqOptions)
-		.then((response) => {
-			// Convert received data to JSON
-			return response.json();
-		})
-		.then((data) => {
-			// Log the data if the request is successful
-			console.log(data);
-		})
-		.catch((err) => {
-			// If there's a problem, handle it...
-			if (err) console.log('connection closed due to errors:', err);
-		});
+	sendCommand('fill', params, reqOptions);
+}
+
+function gradient(startColor, endColor, start, length) {
+
+	let params = new URLSearchParams({
+		startColor: startColor,
+		endColor: endColor,
+		start: start,
+		length: length
+	}).toString()
+
+	sendCommand('gradient', params, reqOptions);
+}
+
+function setPixel(location, color) {
+	let params = new URLSearchParams({
+		location: location,
+		color: color
+	}).toString()
+
+	sendCommand('setPixel', params, reqOptions);
+}
+
+function setPixels(pixels) {
+	let params = new URLSearchParams({
+		pixels: pixels
+	}).toString()
+
+	sendCommand('setPixels', params, reqOptions);
 }
 
 function say(text, color, bgcolor) {
-	let reqOptions =
-	{
-		method: 'POST',
-		headers: {
-			'API': API_KEY,
-			'Content-Type': 'application/json'
-		}
-	};
 
 	let params = new URLSearchParams({
 		text: text,
@@ -54,23 +79,38 @@ function say(text, color, bgcolor) {
 		backgroundColor: bgcolor
 	}).toString()
 
-	fetch(`${FORM_PIX_URL}/api/say?${params}`, reqOptions)
-		.then((response) => {
-			// Convert received data to JSON
-			return response.json();
-		})
-		.then((data) => {
-			// Log the data if the request is successful
-			console.log(data);
-		})
-		.catch((err) => {
-			// If there's a problem, handle it...
-			if (err) console.log('connection closed due to errors:', err);
-		});
+	sendCommand('say', params, reqOptions);
+}
+
+function getSounds(type) {
+	let getOptions =
+	{
+		method: 'GET',
+		headers: {
+			'API': API_KEY,
+			'Content-Type': 'application/json'
+		}
+	};
+
+	let params = new URLSearchParams({
+		type: type
+	}).toString()
+
+	sendCommand('say', params, getOptions);
+
+}
+
+function playSound(sfx, bgm) {
+	let params = new URLSearchParams({
+		sfx: sfx,
+		bgm: bgm
+	}).toString()
+
+	sendCommand('playSound', params, reqOptions);
 }
 
 module.exports = {
-	login, fill, say
+	login, fill, gradient, setPixel, setPixels, say, getSounds, playSound
 };
 
 // Example usage
