@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "A node package for easily handling the formPix API",
   "main": "formpixapi.js",
+  "browser": "formpixbrowser.js",
   "scripts": {
     "test": "node test.js"
   },
@@ -19,5 +20,10 @@
   "bugs": {
     "url": "https://github.com/csmith1188/formPix/issues"
   },
-  "homepage": "https://github.com/csmith1188/formPix#readme"
+  "homepage": "https://github.com/csmith1188/formPix#readme",
+  "devDependencies": {
+    "rollup": "^4.40.1",
+    "rollup-plugin-commonjs": "^10.1.0",
+    "rollup-plugin-node-resolve": "^5.2.0"
+  }
 }
