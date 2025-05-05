@@ -24,3 +24,7 @@ FormPix is a plugin designed for Raspberry Pi to control Neopixel/ws2812 lights 
 - Unfortunately, npm scripts cannot be used with formPix due to npm's inability to operate with sudo. This limitation arises because one of the libraries formPix relies on requires sudo privileges for execution.
 - `npm run test` executes FormPixSim.
 - `npm run dev` executes FormPixSim with nodemon.
+
+### npm Package for API calls
+
+If you are writing a third-party script for a formPix instance, you can use the npm API wrapper package, you can use the [npm package](https://www.npmjs.com/package/formpix?activeTab=readme)
