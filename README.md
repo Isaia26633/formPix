@@ -28,3 +28,7 @@ FormPix is a plugin designed for Raspberry Pi to control Neopixel/ws2812 lights 
 ### npm Package for API calls
 
 If you are writing a third-party script for a formPix instance, you can use the npm API wrapper package, you can use the [npm package](https://www.npmjs.com/package/formpix?activeTab=readme)
+
+### PyPI Package for API Calls
+
+Alternatively, you can use the [Python API wrapper library](https://pypi.org/project/formpix/)
