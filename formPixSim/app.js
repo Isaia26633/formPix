@@ -13,6 +13,7 @@ const { letters } = require('../letters.js')
 const app = express()
 const httpServer = http.createServer(app)
 const webIo = require('socket.io')(httpServer)
+let classId = null
 
 // Set EJS as our view engine
 app.set('view engine', 'ejs')
@@ -591,7 +592,7 @@ app.use(async (req, res, next) => {
 			return
 		}
 
-		let response = await fetch(`${config.formbarUrl}/api/apiPermissionCheck?api=${apiKey}&permissionType=${END_POINT_PERMISSIONS[urlPath]}`, {
+		let response = await fetch(`${config.formbarUrl}/api/apiPermissionCheck?api=${apiKey}&permissionType=${END_POINT_PERMISSIONS[urlPath]}&classId=${classId}`, {
 			method: 'GET',
 			headers: {
 				api: config.api
@@ -933,7 +934,7 @@ app.post('/api/playSound', (req, res) => {
 		res.status(500).json({ error: 'There was a server error try again' })
 	}
 })
-// frompix end
+// formPix end
 
 app.get('/', (request, response) => {
 	response.render('index', {
@@ -1034,6 +1035,7 @@ socket.on('setClass', (userClassId) => {
 		socket.emit('vbTimer')
 	}
 	console.log('Moved to class id:', userClassId);
+	classId = userClassId;
 })
 
 socket.on('vbUpdate', (newPollData) => {
