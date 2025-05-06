@@ -596,11 +596,18 @@ app.use(async (req, res, next) => {
 			headers: {
 				api: config.api
 			}
-		})
-		data = await response.json();
+		});
 
+		// Check if the response status is not 200
+		// If a user is not allowed to access the endpoint, this will also be triggered
+		if (response.status != 200) {
+			res.status(response.status).json({ message: response.statusText })
+			return
+		}
+
+		let data = await response.json();
 		if (data.error) {
-			res.status(response.status).json({ error: data.error })
+			res.status(response.status).json({ status: data.error })
 			return
 		}
 
