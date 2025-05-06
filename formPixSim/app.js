@@ -1128,9 +1128,15 @@ socket.on('vbUpdate', (newPollData) => {
 			}
 		}
 
-		// Calculate pixels per student, considering non-empty polls
+		// Add up the total number of responses for each response option
+		let totalResponses = 0
+		for (let poll of Object.values(newPollData.polls)) {
+			totalResponses += poll.responses
+		}
+
+		// Calculate pixels per response, considering non-empty polls
 		if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
-		else pixelsPerStudent = Math.floor((config.barPixels - nonEmptyPolls) / newPollData.totalResponders) - 1
+		else pixelsPerStudent = Math.floor((config.barPixels - nonEmptyPolls) / totalResponses) - 1
 
 		// Add polls to the display
 		let currentPixel = 0
@@ -1166,7 +1172,7 @@ socket.on('vbUpdate', (newPollData) => {
 
 	// Set the display text based on the prompt and poll responses
 	if (!specialDisplay) {
-		text = `${pollResponses}/${newPollData.totalResponders} `
+		text = `${newPollData.totalResponses}/${newPollData.totalResponders} `
 		if (newPollData.prompt) pollText = newPollData.prompt
 
 		fill(0x000000, config.barPixels + getStringColumnLength(text + pollText) * BOARD_HEIGHT)
