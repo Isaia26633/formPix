@@ -1113,8 +1113,13 @@ socket.on('vbUpdate', (newPollData) => {
 		}
 
 		// Calculate pixels per response, considering non-empty polls
-		if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
-		else pixelsPerStudent = Math.floor((config.barPixels - nonEmptyPolls) / totalResponses) - 1
+		if (newPollData.multiRes) {
+			if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
+			else pixelsPerStudent = Math.floor((config.barPixels - nonEmptyPolls) / totalResponses / newPollData.totalResponders) - 1
+		} else {
+			if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
+			else pixelsPerStudent = Math.floor((config.barPixels - nonEmptyPolls) / newPollData.totalResponders) - 1
+		}
 
 		// Add polls to the display
 		let currentPixel = 0
