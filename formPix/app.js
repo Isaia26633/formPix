@@ -66,13 +66,12 @@ ws281x.render()
 // set web socket url
 const app = express()
 const httpServer = http.createServer(app)
-
 const socket = io(config.formbarUrl, {
 	extraHeaders: {
 		api: config.api
 	}
 })
-
+let classId = null
 
 // Get sounds
 sounds.bgm = fs.readdirSync('./bgm')
@@ -561,16 +560,23 @@ app.use(async (req, res, next) => {
 			return
 		}
 
-		let response = await fetch(`${config.formbarUrl}api/apiPermissionCheck?api=${apiKey}&permissionType=${END_POINT_PERMISSIONS[urlPath]}`, {
+		let response = await fetch(`${config.formbarUrl}/api/apiPermissionCheck?api=${apiKey}&permissionType=${END_POINT_PERMISSIONS[urlPath]}&classId=${classId}`, {
 			method: 'GET',
 			headers: {
 				api: config.api
 			}
-		})
-		data = await response.json();
+		});
 
+		// Check if the response status is not 200
+		// If a user is not allowed to access the endpoint, this will also be triggered
+		if (response.status != 200) {
+			res.status(response.status).json({ message: response.statusText })
+			return
+		}
+
+		let data = await response.json();
 		if (data.error) {
-			res.status(response.status).json({ error: data.error })
+			res.status(response.status).json({ status: data.error })
 			return
 		}
 
@@ -976,6 +982,9 @@ socket.on('connect', () => {
 	// Set the connected flag to true
 	connected = true
 
+	// Get active class from the api key
+	socket.emit('getActiveClass', config.api);
+
 	// Display the board with the IP address, white color, black background, and true for the clear flag
 	let display = displayBoard(config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000)
 	if (!display) return
@@ -992,9 +1001,6 @@ socket.on('setClass', (userClassId) => {
 		// Clear the bar
 		fill(0x000000, 0, config.barPixels)
 
-		// Get active class from the api key
-		socket.emit('getActiveClass', config.api);
-
 		// Display the board with the specified parameters
 		let display = displayBoard(config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000)
 		if (!display) return
@@ -1007,6 +1013,7 @@ socket.on('setClass', (userClassId) => {
 		socket.emit('vbTimer')
 	}
 	console.log('Moved to class id:', userClassId);
+	classId = userClassId;
 })
 
 socket.on('vbUpdate', (newPollData) => {
@@ -1099,9 +1106,20 @@ socket.on('vbUpdate', (newPollData) => {
 			}
 		}
 
-		// Calculate pixels per student, considering non-empty polls
-		if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
-		else pixelsPerStudent = Math.floor((config.barPixels - nonEmptyPolls) / newPollData.totalResponders) - 1
+		// Add up the total number of responses for each response option
+		let totalResponses = 0
+		for (let poll of Object.values(newPollData.polls)) {
+			totalResponses += poll.responses
+		}
+
+		// Calculate pixels per response, considering non-empty polls
+		if (newPollData.multiRes) {
+			if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
+			else pixelsPerStudent = Math.floor((config.barPixels - nonEmptyPolls) / totalResponses / newPollData.totalResponders) - 1
+		} else {
+			if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
+			else pixelsPerStudent = Math.floor((config.barPixels - nonEmptyPolls) / newPollData.totalResponders) - 1
+		}
 
 		// Add polls to the display
 		let currentPixel = 0
@@ -1137,7 +1155,7 @@ socket.on('vbUpdate', (newPollData) => {
 
 	// Set the display text based on the prompt and poll responses
 	if (!specialDisplay) {
-		text = `${pollResponses}/${newPollData.totalResponders} `
+		text = `${newPollData.totalResponses}/${newPollData.totalResponders} `
 		if (newPollData.prompt) pollText = newPollData.prompt
 
 		fill(0x000000, config.barPixels + getStringColumnLength(text + pollText) * BOARD_HEIGHT)
