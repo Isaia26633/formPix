@@ -1,11 +1,5 @@
 var FORM_PIX_URL = 'http://localhost:3000';
 var API_KEY = null;
-
-function login(url, key) {
-	FORM_PIX_URL = url;
-	API_KEY = key;
-}
-
 let reqOptions =
 {
 	method: 'POST',
@@ -15,7 +9,23 @@ let reqOptions =
 	}
 };
 
+function login(url, key) {
+	FORM_PIX_URL = url;
+	API_KEY = key;
+	reqOptions =
+	{
+		method: 'POST',
+		headers: {
+			'API': API_KEY,
+			'Content-Type': 'application/json'
+		}
+	};
+}
+
+
 function sendCommand(command, params, reqOptions) {
+	console.log(reqOptions.headers);
+
 	fetch(`${FORM_PIX_URL}/api/${command}?${params}`, reqOptions)
 		.then((response) => {
 			// Convert received data to JSON
