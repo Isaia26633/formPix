@@ -7,6 +7,10 @@ const { letters } = require('../letters')
 const util = require('util');
 const player = require('play-sound')({ player: 'omxplayer' })
 
+// If the bgm folder does not exist, create it
+if (!fs.existsSync('bgm')) {
+    fs.mkdirSync('bgm')
+}
 
 // Constants
 const PIXELS_PER_LETTER = 5
@@ -1008,15 +1012,16 @@ socket.on('setClass', (userClassId) => {
 
 		ws281x.render()
 	} else {
-		// Emit 'vbUpdate' event to the socket
-		socket.emit('vbUpdate')
+		// Emit 'classUpdate' event to the socket
+		socket.emit('classUpdate')
 		socket.emit('vbTimer')
 	}
 	console.log('Moved to class id:', userClassId);
 	classId = userClassId;
 })
 
-socket.on('vbUpdate', (newPollData) => {
+socket.on('classUpdate', (classroomData) => {
+    const newPollData = classroomData.poll
 	let pixelsPerStudent
 	let text = ''
 	let pollText = 'Poll'
@@ -1042,7 +1047,7 @@ socket.on('vbUpdate', (newPollData) => {
 	}
 
 	// Count total poll responses
-	for (let poll of Object.values(newPollData.polls)) {
+	for (let poll of Object.values(newPollData.responses)) {
 		pollResponses += poll.responses
 	}
 
@@ -1051,7 +1056,7 @@ socket.on('vbUpdate', (newPollData) => {
 		fill(0x808080, 0, config.barPixels)
 
 		// Convert colors from hex to integers for each poll
-		for (let poll of Object.values(newPollData.polls)) {
+		for (let poll of Object.values(newPollData.responses)) {
 			poll.color = parseInt(poll.color.slice(1), 16)
 		}
 
@@ -1062,7 +1067,7 @@ socket.on('vbUpdate', (newPollData) => {
 			if (newPollData.prompt == 'Thumbs?') {
 				fill(0x000000, config.barPixels)
 
-				if (newPollData.polls.Up.responses == newPollData.totalResponders) {
+				if (newPollData.responses.Up.responses == newPollData.totalResponders) {
 					gradient(0x0000FF, 0xFF0000, 0, config.barPixels)
 					let display = displayBoard('Max Gamer', 0x00FF00, 0x000000)
 					if (!display) return
@@ -1072,7 +1077,7 @@ socket.on('vbUpdate', (newPollData) => {
 					specialDisplay = true
 
 					return
-				} else if (newPollData.polls.Wiggle.responses == newPollData.totalResponders) {
+				} else if (newPollData.responses.Wiggle.responses == newPollData.totalResponders) {
 					player.play('./sfx/bruh.wav')
 
 					let text = [
@@ -1087,7 +1092,7 @@ socket.on('vbUpdate', (newPollData) => {
 					boardIntervals.push(display)
 
 					specialDisplay = true
-				} else if (newPollData.polls.Down.responses == newPollData.totalResponders) {
+				} else if (newPollData.responses.Down.responses == newPollData.totalResponders) {
 					player.play('./sfx/wompwomp.wav')
 					let display = displayBoard('Git Gud', 0xFF0000, 0x000000)
 					if (!display) return
@@ -1100,7 +1105,7 @@ socket.on('vbUpdate', (newPollData) => {
 
 		// Count non-empty polls
 		let nonEmptyPolls = -1
-		for (let poll of Object.values(newPollData.polls)) {
+		for (let poll of Object.values(newPollData.responses)) {
 			if (poll.responses > 0) {
 				nonEmptyPolls++
 			}
@@ -1108,7 +1113,7 @@ socket.on('vbUpdate', (newPollData) => {
 
 		// Add up the total number of responses for each response option
 		let totalResponses = 0
-		for (let poll of Object.values(newPollData.polls)) {
+		for (let poll of Object.values(newPollData.responses)) {
 			totalResponses += poll.responses
 		}
 
@@ -1124,7 +1129,7 @@ socket.on('vbUpdate', (newPollData) => {
 		// Add polls to the display
 		let currentPixel = 0
 		let pollNumber = 0
-		for (let poll of Object.values(newPollData.polls)) {
+		for (let poll of Object.values(newPollData.responses)) {
 			// For each response
 			for (let responseNumber = 0; responseNumber < poll.responses; responseNumber++) {
 				let color = poll.color
@@ -1216,7 +1221,7 @@ socket.on('vbTimer', (newTimerData) => {
 		if (timerData.active) {
 			fill(0x000000, 0, config.barPixels)
 			ws281x.render()
-			socket.emit('vbUpdate')
+			socket.emit('classUpdate')
 			timerData = newTimerData
 		}
 		return
