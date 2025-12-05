@@ -1046,8 +1046,19 @@ socket.on('classUpdate', (classroomData) => {
 		return
 	}
 
+	// Normalize responses to array format for consistent iteration
+	const getResponsesArray = () => {
+		if (Array.isArray(newPollData.responses)) {
+			return newPollData.responses
+		} else {
+			return Object.values(newPollData.responses)
+		}
+	}
+
+	const responsesArray = getResponsesArray()
+
 	// Count total poll responses
-	for (let poll of Object.values(newPollData.responses)) {
+	for (let poll of responsesArray) {
 		pollResponses += poll.responses
 	}
 
@@ -1056,7 +1067,7 @@ socket.on('classUpdate', (classroomData) => {
 		fill(0x808080, 0, config.barPixels)
 
 		// Convert colors from hex to integers for each poll
-		for (let poll of Object.values(newPollData.responses)) {
+		for (let poll of responsesArray) {
 			poll.color = parseInt(poll.color.slice(1), 16)
 		}
 
@@ -1067,7 +1078,13 @@ socket.on('classUpdate', (classroomData) => {
 			if (newPollData.prompt == 'Thumbs?') {
 				fill(0x000000, config.barPixels)
 
-				if (newPollData.responses.Up.responses == newPollData.totalResponders) {
+				// Helper function to find response by answer text
+				const findResponse = (answerText) => {
+					return responsesArray.find(r => r.answer === answerText)
+				}
+
+				const upResponse = findResponse('Up')
+				if (upResponse && upResponse.responses == newPollData.totalResponders) {
 					gradient(0x0000FF, 0xFF0000, 0, config.barPixels)
 					let display = displayBoard('Max Gamer', 0x00FF00, 0x000000)
 					if (!display) return
@@ -1077,7 +1094,10 @@ socket.on('classUpdate', (classroomData) => {
 					specialDisplay = true
 
 					return
-				} else if (newPollData.responses.Wiggle.responses == newPollData.totalResponders) {
+				}
+
+				const wiggleResponse = findResponse('Wiggle')
+				if (wiggleResponse && wiggleResponse.responses == newPollData.totalResponders) {
 					player.play('./sfx/bruh.wav')
 
 					let text = [
@@ -1092,7 +1112,10 @@ socket.on('classUpdate', (classroomData) => {
 					boardIntervals.push(display)
 
 					specialDisplay = true
-				} else if (newPollData.responses.Down.responses == newPollData.totalResponders) {
+				}
+
+				const downResponse = findResponse('Down')
+				if (downResponse && downResponse.responses == newPollData.totalResponders) {
 					player.play('./sfx/wompwomp.wav')
 					let display = displayBoard('Git Gud', 0xFF0000, 0x000000)
 					if (!display) return
@@ -1105,7 +1128,7 @@ socket.on('classUpdate', (classroomData) => {
 
 		// Count non-empty polls
 		let nonEmptyPolls = -1
-		for (let poll of Object.values(newPollData.responses)) {
+		for (let poll of responsesArray) {
 			if (poll.responses > 0) {
 				nonEmptyPolls++
 			}
@@ -1113,7 +1136,7 @@ socket.on('classUpdate', (classroomData) => {
 
 		// Add up the total number of responses for each response option
 		let totalResponses = 0
-		for (let poll of Object.values(newPollData.responses)) {
+		for (let poll of responsesArray) {
 			totalResponses += poll.responses
 		}
 
@@ -1129,7 +1152,7 @@ socket.on('classUpdate', (classroomData) => {
 		// Add polls to the display
 		let currentPixel = 0
 		let pollNumber = 0
-		for (let poll of Object.values(newPollData.responses)) {
+		for (let poll of responsesArray) {
 			// For each response
 			for (let responseNumber = 0; responseNumber < poll.responses; responseNumber++) {
 				let color = poll.color
