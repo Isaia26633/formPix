@@ -1156,7 +1156,7 @@ socket.on('classUpdate', (classroomData) => {
 		// Calculate pixels per response, considering non-empty polls
 		if (newPollData.multiRes) {
 			if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
-			else pixelsPerStudent = Math.ceil((config.barPixels - nonEmptyPolls) / totalResponses / newPollData.totalResponders) - 1
+			else pixelsPerStudent = Math.ceil((config.barPixels - nonEmptyPolls) / totalResponses / newPollData.totalResponders)
 		} else {
 			if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
 			else pixelsPerStudent = Math.ceil((config.barPixels - nonEmptyPolls) / newPollData.totalResponders)
