@@ -1,0 +1,60 @@
+/**
+ * Controllers for display and text routes
+ */
+
+const { textToHexColor } = require('../utils/colorUtils');
+const { displayBoard } = require('../utils/displayUtils');
+const ws281x = require('rpi-ws281x-native');
+
+/**
+ * POST /api/say - Display text on the LED board
+ */
+async function sayController(req, res) {
+	try {
+		const { pixels, config, boardIntervals } = require('../state');
+		
+		let { text, textColor, backgroundColor } = req.query
+
+		if (!text) {
+			res.status(400).json({ error: 'You did not provide any text' })
+			return
+		}
+		if (!textColor) {
+			res.status(400).json({ error: 'You did not provide any textColor' })
+			return
+		}
+		if (!backgroundColor) {
+			res.status(400).json({ error: 'You did not provide any backgroundColor' })
+			return
+		}
+
+		textColor = textToHexColor(textColor)
+		backgroundColor = textToHexColor(backgroundColor)
+
+		if (typeof textColor == 'string') {
+			res.status(400).json({ error: textColor })
+			return
+		}
+		if (textColor instanceof Error) throw textColor
+		if (typeof backgroundColor == 'string') {
+			res.status(400).json({ error: backgroundColor })
+			return
+		}
+		if (backgroundColor instanceof Error) throw backgroundColor
+
+		let display = displayBoard(pixels, text, textColor, backgroundColor, config, boardIntervals)
+		if (!display) {
+			res.status(500).json({ error: 'There was a server error try again' })
+			return
+		}
+		boardIntervals.push(display)
+
+		res.status(200).json({ message: 'ok' })
+	} catch (err) {
+		res.status(500).json({ error: 'There was a server error try again' })
+	}
+}
+
+module.exports = {
+	sayController
+};
