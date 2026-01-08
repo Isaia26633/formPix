@@ -53,6 +53,18 @@ function handleClassUpdate() {
 			pollResponses += poll.responses
 		}
 
+		if (newPollData.totalResponses === 6 && newPollData.totalResponders === 9) {
+			player.play('./sfx/clicknice.wav')
+		}
+
+		if (newPollData.totalResponses === 6 && newPollData.totalResponders === 7) {
+			player.play('./sfx/brainrot.wav')
+		}
+
+		if (newPollData.totalResponses === 4 && newPollData.totalResponders === 20) {
+			player.play('./sfx/snoop.wav')
+		}
+
 		if (!timerData.active) {
 			fill(pixels, 0x808080, 0, config.barPixels)
 
@@ -73,7 +85,11 @@ function handleClassUpdate() {
 					const upResponses = findResponse('Up')
 					if (upResponses && upResponses.responses == newPollData.totalResponders) {
 						gradient(pixels, 0x0000FF, 0xFF0000, 0, config.barPixels)
-						let display = displayBoard(pixels, 'Max Gamer', 0x00FF00, 0x000000, config, boardIntervals)
+						let text = [
+							'Skibidi Rizz!',
+							'Max Gamer!'
+						]
+						let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0x00FF00, 0x000000, config, boardIntervals)
 						if (!display) return
 						boardIntervals.push(display)
 						player.play('./sfx/sfx_success01.wav')
@@ -104,7 +120,11 @@ function handleClassUpdate() {
 					const downResponse = findResponse('Down')
 					if (downResponse && downResponse.responses == newPollData.totalResponders) {
 						player.play('./sfx/wompwomp.wav')
-						let display = displayBoard(pixels, 'Git Gud', 0xFF0000, 0x000000, config, boardIntervals)
+						let text = [
+							'Git Gud',
+							'Skill issue'
+						]
+						let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0xFF0000, 0x000000, config, boardIntervals)
 						if (!display) return
 						boardIntervals.push(display)
 

@@ -2,7 +2,7 @@
  * Display and text rendering functions
  */
 
-const { letters } = require('../../letters');
+const { letters } = require('../letters.js');
 
 const PIXELS_PER_LETTER = 5;
 const BOARD_HEIGHT = 8;
