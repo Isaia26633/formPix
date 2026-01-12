@@ -4,14 +4,13 @@
 
 const { textToHexColor } = require('../utils/colorUtils');
 const { displayBoard } = require('../utils/displayUtils');
-const ws281x = require('rpi-ws281x-native');
 
 /**
  * POST /api/say - Display text on the LED board
  */
 async function sayController(req, res) {
 	try {
-		const { pixels, config, boardIntervals } = require('../state');
+		const { pixels, config, boardIntervals, ws281x } = require('../state');
 		
 		let { text, textColor, backgroundColor } = req.query
 
@@ -42,7 +41,7 @@ async function sayController(req, res) {
 		}
 		if (backgroundColor instanceof Error) throw backgroundColor
 
-		let display = displayBoard(pixels, text, textColor, backgroundColor, config, boardIntervals)
+		let display = displayBoard(pixels, text, textColor, backgroundColor, config, boardIntervals, ws281x)
 		if (!display) {
 			res.status(500).json({ error: 'There was a server error try again' })
 			return
