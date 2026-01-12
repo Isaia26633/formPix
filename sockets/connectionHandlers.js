@@ -48,12 +48,20 @@ function handleConnect(socket, boardIntervals) {
 
 		socket.emit('getActiveClass', config.api);
 
-		let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals)
-		if (!display) return
-		boardIntervals.push(display)
+	let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals)
+	if (!display) return
+	boardIntervals.push(display)
 
-		const { player } = require('../utils/soundUtils');
-		player.play('./sfx/sfx_bootup02.wav')
+	const { player } = require('../utils/soundUtils');
+	if (player) {
+		try {
+			player.play('./sfx/sfx_bootup02.wav', (err) => {
+				if (err) console.error('Error playing bootup sound:', err.message);
+			});
+		} catch (err) {
+			console.error('Error playing bootup sound:', err.message);
+		}
+	}
 	}
 }
 

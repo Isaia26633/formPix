@@ -3,20 +3,43 @@
  */
 
 const fs = require('fs');
+const { execSync } = require('child_process');
+
+// Helper function to check if a command exists
+function commandExists(cmd) {
+	try {
+		execSync(`where ${cmd}`, { stdio: 'ignore', shell: 'powershell.exe' });
+		return true;
+	} catch {
+		try {
+			execSync(`which ${cmd}`, { stdio: 'ignore' });
+			return true;
+		} catch {
+			return false;
+		}
+	}
+}
 
 // Initialize player with fallback: try omxplayer, then vlc
 let player;
-try {
+let playerType = 'none';
+
+if (commandExists('omxplayer')) {
 	player = require('play-sound')({ player: 'omxplayer' });
+	playerType = 'omxplayer';
 	console.log('✓ Initialized audio player with omxplayer');
-} catch (omxError) {
-	console.warn('✗ omxplayer failed, falling back to vlc:', omxError.message);
+} else if (commandExists('cvlc')) {
+	player = require('play-sound')({ player: 'cvlc' });
+	playerType = 'vlc';
+	console.log('✓ Initialized audio player with cvlc');
+} else {
 	try {
-		player = require('play-sound')({ player: 'cvlc' });
-		console.log('✓ Initialized audio player with vlc');
-	} catch (vlcError) {
-		console.error('✗ vlc also failed:', vlcError.message);
+		player = require('play-sound')({});
+		playerType = 'default';
+		console.log('✓ Initialized audio player with default player');
+	} catch (error) {
 		player = null;
+		playerType = 'none';
 		console.warn('⚠ Audio playback disabled - no player available');
 	}
 }
@@ -37,7 +60,11 @@ function playSound({ bgm, sfx }) {
 	if (bgm) {
 		if (fs.existsSync(`./bgm/${bgm}`)) {
 			try {
-				player.play(`./bgm/${bgm}`)
+				player.play(`./bgm/${bgm}`, (err) => {
+					if (err && !err.killed) {
+						console.error('Error playing bgm:', err.message);
+					}
+				});
 				return true
 			} catch (err) {
 				console.error('Error playing bgm:', err.message);
@@ -51,7 +78,11 @@ function playSound({ bgm, sfx }) {
 	if (sfx) {
 		if (fs.existsSync(`./sfx/${sfx}`)) {
 			try {
-				player.play(`./sfx/${sfx}`)
+				player.play(`./sfx/${sfx}`, (err) => {
+					if (err && !err.killed) {
+						console.error('Error playing sfx:', err.message);
+					}
+				});
 				return true
 			} catch (err) {
 				console.error('Error playing sfx:', err.message);
