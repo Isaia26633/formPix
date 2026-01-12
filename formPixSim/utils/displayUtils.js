@@ -95,15 +95,22 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 		) return
 	}
 
-	boardIntervals = boardIntervals.filter(boardInterval => {
+	// Clear overlapping intervals by mutating the array in place
+	const { fill } = require('./pixelOps');
+	for (let i = boardIntervals.length - 1; i >= 0; i--) {
+		let boardInterval = boardIntervals[i];
 		if (
 			startColumn < boardInterval.endColumn &&
 			endColumn > boardInterval.startColumn
 		) {
 			clearInterval(boardInterval.interval);
-			return false
-		} else return true
-	})
+			// Clear the pixels this interval was controlling
+			if (boardInterval.startPixel !== undefined && boardInterval.endPixel !== undefined) {
+				fill(pixels, 0x000000, boardInterval.startPixel, boardInterval.endPixel - boardInterval.startPixel);
+			}
+			boardIntervals.splice(i, 1);
+		}
+	}
 
 	for (let letter of string) {
 		if (!letters[letter]) continue
@@ -124,7 +131,9 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 		return {
 			string,
 			startColumn,
-			endColumn
+			endColumn,
+			startPixel,
+			endPixel
 		}
 	} else {
 		for (let i = 0; i < 2 * 6 + 1; i++) {
@@ -141,7 +150,9 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 				ws281x.render();
 			}, 200),
 			startColumn,
-			endColumn
+			endColumn,
+			startPixel,
+			endPixel
 		}
 	}
 }
