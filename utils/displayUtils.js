@@ -1,8 +1,8 @@
 /**
- * Display and text rendering functions
+ * Display and text rendering functions for simulation
  */
 
-const { letters } = require('../letters.js');
+const { letters } = require('../../letters');
 
 const PIXELS_PER_LETTER = 5;
 const BOARD_HEIGHT = 8;
@@ -15,6 +15,7 @@ const BOARD_HEIGHT = 8;
  * @param {number} backgroundColor - Background color in hex
  * @param {number} startPixel - Starting pixel index
  * @param {number} endPixel - Ending pixel index
+ * @param {Uint32Array} pixels - The pixels array
  */
 function showString(boardPixels, startFrame, textColor, backgroundColor, pixels, startPixel, endPixel) {
 	const { fill } = require('./pixelOps');
@@ -47,7 +48,7 @@ function showString(boardPixels, startFrame, textColor, backgroundColor, pixels,
 }
 
 /**
- * Calculates the length of a string column based on the number of characters in the text.
+ * Calculates the length of a string column
  * @param {string} text - The input text.
  * @returns {number} The amount of columns in the string.
  */
@@ -63,12 +64,11 @@ function getStringColumnLength(text) {
  * @param {number} backgroundColor - The color of the background.
  * @param {Object} config - Configuration object
  * @param {Array} boardIntervals - Array of active board intervals
+ * @param {Object} ws281x - WebSocket renderer object
  * @param {number} [startColumn=0] - The starting column to display the string.
  * @param {number} [endColumn] - The ending column to display the string.
  */
-function displayBoard(pixels, string, textColor, backgroundColor, config, boardIntervals, startColumn = 0, endColumn = null) {
-	const ws281x = require('rpi-ws281x-native');
-	
+function displayBoard(pixels, string, textColor, backgroundColor, config, boardIntervals, ws281x, startColumn = 0, endColumn = null) {
 	if (endColumn === null) {
 		endColumn = config.boards * 32;
 	}
@@ -95,15 +95,22 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 		) return
 	}
 
-	boardIntervals = boardIntervals.filter(boardInterval => {
+	// Clear overlapping intervals by mutating the array in place
+	const { fill } = require('./pixelOps');
+	for (let i = boardIntervals.length - 1; i >= 0; i--) {
+		let boardInterval = boardIntervals[i];
 		if (
 			startColumn < boardInterval.endColumn &&
 			endColumn > boardInterval.startColumn
 		) {
 			clearInterval(boardInterval.interval);
-			return false
-		} else return true
-	})
+			// Clear the pixels this interval was controlling
+			if (boardInterval.startPixel !== undefined && boardInterval.endPixel !== undefined) {
+				fill(pixels, 0x000000, boardInterval.startPixel, boardInterval.endPixel - boardInterval.startPixel);
+			}
+			boardIntervals.splice(i, 1);
+		}
+	}
 
 	for (let letter of string) {
 		if (!letters[letter]) continue
@@ -124,7 +131,9 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 		return {
 			string,
 			startColumn,
-			endColumn
+			endColumn,
+			startPixel,
+			endPixel
 		}
 	} else {
 		for (let i = 0; i < 2 * 6 + 1; i++) {
@@ -141,7 +150,9 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 				ws281x.render();
 			}, 200),
 			startColumn,
-			endColumn
+			endColumn,
+			startPixel,
+			endPixel
 		}
 	}
 }
