@@ -19,12 +19,10 @@ async function sayController(req, res) {
 			return
 		}
 		if (!textColor) {
-			res.status(400).json({ error: 'You did not provide any textColor' })
-			return
+			textColor = '#FFFFFF' // default to white
 		}
 		if (!backgroundColor) {
-			res.status(400).json({ error: 'You did not provide any backgroundColor' })
-			return
+			backgroundColor = '#000000' // default to black
 		}
 
 		textColor = textToHexColor(textColor)
