@@ -6,7 +6,6 @@ const util = require('util');
 const { fill, gradient } = require('../utils/pixelOps');
 const { displayBoard, getStringColumnLength } = require('../utils/displayUtils');
 const { player } = require('../utils/soundUtils');
-const ws281x = require('rpi-ws281x-native');
 const PIXELS_PER_LETTER = 5;
 
 /**
@@ -14,7 +13,7 @@ const PIXELS_PER_LETTER = 5;
  */
 function handleClassUpdate() {
 	return (classroomData) => {
-		const { pixels, config, boardIntervals, pollData, timerData } = require('../state');
+		const { pixels, config, boardIntervals, pollData, timerData, ws281x } = require('../state');
 		const newPollData = classroomData.poll
 		let pixelsPerStudent
 		let text = ''
@@ -28,7 +27,7 @@ function handleClassUpdate() {
 		if (!newPollData.status) {
 			fill(pixels, 0x000000, 0, config.barPixels)
 
-			let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals)
+		let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
 			if (display) {
 				boardIntervals.push(display)
 				ws281x.render()
@@ -89,7 +88,7 @@ function handleClassUpdate() {
 							'Skibidi Rizz!',
 							'Max Gamer!'
 						]
-						let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0x00FF00, 0x000000, config, boardIntervals)
+					let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0x00FF00, 0x000000, config, boardIntervals, ws281x)
 						if (!display) return
 						boardIntervals.push(display)
 						player.play('./sfx/sfx_success01.wav')
@@ -110,7 +109,7 @@ function handleClassUpdate() {
 
 						text = text[Math.floor(Math.random() * text.length)]
 
-						let display = displayBoard(pixels, text, 0x00FFFF, 0x000000, config, boardIntervals)
+let display = displayBoard(pixels, text, 0x00FFFF, 0x000000, config, boardIntervals, ws281x)
 						if (!display) return
 						boardIntervals.push(display)
 
@@ -124,7 +123,7 @@ function handleClassUpdate() {
 							'Git Gud',
 							'Skill issue'
 						]
-						let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0xFF0000, 0x000000, config, boardIntervals)
+let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0xFF0000, 0x000000, config, boardIntervals, ws281x)
 						if (!display) return
 						boardIntervals.push(display)
 
@@ -185,10 +184,10 @@ function handleClassUpdate() {
 
 			fill(pixels, 0x000000, config.barPixels + getStringColumnLength(text + pollText) * 8)
 
-			let display = displayBoard(pixels, text, 0xFFFFFF, 0x000000, config, boardIntervals)
+			let display = displayBoard(pixels, text, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
 			if (display) boardIntervals.push(display)
 
-			display = displayBoard(pixels, pollText, 0xFFFFFF, 0x000000, config, boardIntervals, getStringColumnLength(text))
+			display = displayBoard(pixels, pollText, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x, getStringColumnLength(text))
 			if (display) boardIntervals.push(display)
 		}
 
