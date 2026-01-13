@@ -5,6 +5,9 @@
 const fs = require('fs');
 const ws281x = require('rpi-ws281x-native');
 const { loadSounds } = require('./utils/soundUtils');
+const env = require('dotenv');
+env.config();
+
 
 // Load config from the .env
 const config = {
