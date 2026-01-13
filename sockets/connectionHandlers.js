@@ -5,7 +5,6 @@
 const { fill, gradient } = require('../utils/pixelOps');
 const { displayBoard, getStringColumnLength } = require('../utils/displayUtils');
 const { playSound } = require('../utils/soundUtils');
-const ws281x = require('rpi-ws281x-native');
 
 /**
  * Handle connection error
@@ -15,7 +14,7 @@ function handleConnectError(socket, boardIntervals) {
 		if (error.message == 'xhr poll error') console.log('no connection');
 		else console.log(error.message);
 
-		const { pixels, config } = require('../state');
+		const { pixels, config, ws281x } = require('../state');
 		
 		let state = require('../state');
 		state.connected = false
@@ -41,14 +40,14 @@ function handleConnect(socket, boardIntervals) {
 	return () => {
 		console.log('connected')
 
-		const { pixels, config } = require('../state');
+		const { pixels, config, ws281x } = require('../state');
 		
 		let state = require('../state');
 		state.connected = true
 
 		socket.emit('getActiveClass', config.api);
 
-		let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals)
+		let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
 		if (!display) return
 		boardIntervals.push(display)
 
@@ -62,12 +61,12 @@ function handleConnect(socket, boardIntervals) {
  */
 function handleSetClass(socket, boardIntervals) {
 	return (userClassId) => {
-		const { pixels, config } = require('../state');
+		const { pixels, config, ws281x } = require('../state');
 		
 		if (userClassId == null) {
 			fill(pixels, 0x000000, 0, config.barPixels)
 
-			let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals)
+			let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
 			if (!display) return
 			boardIntervals.push(display)
 
