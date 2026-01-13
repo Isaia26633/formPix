@@ -48,6 +48,7 @@ ws281x.render();
 let state = {
 	config,
 	pixels,
+	ws281x,
 	connected: false,
 	socket: null,
 	classId: null,
