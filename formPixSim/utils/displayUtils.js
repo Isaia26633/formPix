@@ -42,7 +42,6 @@ function showString(boardPixels, startFrame, textColor, backgroundColor, pixels,
 
 			if (currentPixel >= endPixel) return
 		}
-
 		currentColumn = (currentColumn + 1) % newBoardPixels.length;
 	}
 }
@@ -73,7 +72,6 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 		endColumn = config.boards * 32;
 	}
 
-	string = string.toLowerCase();
 	let stringColumnLength = getStringColumnLength(string);
 
 	let startPixel = config.barPixels + startColumn * BOARD_HEIGHT
@@ -91,7 +89,9 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 		if (
 			string == boardInterval.string &&
 			startColumn == boardInterval.startColumn &&
-			endColumn == boardInterval.endColumn
+			endColumn == boardInterval.endColumn &&
+			textColor == boardInterval.textColor &&
+			backgroundColor == boardInterval.backgroundColor
 		) return
 	}
 
@@ -121,7 +121,8 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 			boardPixels.push(col);
 		}
 
-		boardPixels.push(Array(8).fill(0));
+		const unspacedLetters = ['♪']
+		if (!unspacedLetters.includes(letter)) boardPixels.push(Array(8).fill(0));
 	}
 
 	if (boardPixels.length - 1 <= endColumn - startColumn) {
@@ -133,7 +134,9 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 			startColumn,
 			endColumn,
 			startPixel,
-			endPixel
+			endPixel,
+			textColor,
+			backgroundColor
 		}
 	} else {
 		for (let i = 0; i < 2 * 6 + 1; i++) {
@@ -152,7 +155,9 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 			startColumn,
 			endColumn,
 			startPixel,
-			endPixel
+			endPixel,
+			textColor,
+			backgroundColor
 		}
 	}
 }
