@@ -42,7 +42,6 @@ function showString(boardPixels, startFrame, textColor, backgroundColor, pixels,
 
 			if (currentPixel >= endPixel) return
 		}
-
 		currentColumn = (currentColumn + 1) % newBoardPixels.length;
 	}
 }
