@@ -89,7 +89,9 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 		if (
 			string == boardInterval.string &&
 			startColumn == boardInterval.startColumn &&
-			endColumn == boardInterval.endColumn
+			endColumn == boardInterval.endColumn &&
+			textColor == boardInterval.textColor &&
+			backgroundColor == boardInterval.backgroundColor
 		) return
 	}
 
@@ -132,7 +134,9 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 			startColumn,
 			endColumn,
 			startPixel,
-			endPixel
+			endPixel,
+			textColor,
+			backgroundColor
 		}
 	} else {
 		for (let i = 0; i < 2 * 6 + 1; i++) {
@@ -151,7 +155,9 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 			startColumn,
 			endColumn,
 			startPixel,
-			endPixel
+			endPixel,
+			textColor,
+			backgroundColor
 		}
 	}
 }
