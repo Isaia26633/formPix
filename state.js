@@ -66,7 +66,7 @@ let state = {
 	REQUIRED_PERMISSION
 };
 
-// Initialize folders
+// Initialize folders if not found
 if (!fs.existsSync('bgm')) {
 	fs.mkdirSync('bgm');
 }

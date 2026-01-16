@@ -2,7 +2,7 @@
  * Display and text rendering functions for simulation
  */
 
-const { letters } = require('../../letters');
+const { letters } = require ('../../letters');
 
 const PIXELS_PER_LETTER = 5;
 const BOARD_HEIGHT = 8;
@@ -66,8 +66,9 @@ function getStringColumnLength(text) {
  * @param {Object} ws281x - WebSocket renderer object
  * @param {number} [startColumn=0] - The starting column to display the string.
  * @param {number} [endColumn] - The ending column to display the string.
+ * @param {number} [scroll=100] - The speed of scrolling in milliseconds.
  */
-function displayBoard(pixels, string, textColor, backgroundColor, config, boardIntervals, ws281x, startColumn = 0, endColumn = null) {
+function displayBoard(pixels, string, textColor, backgroundColor, config, boardIntervals, ws281x, startColumn = 0, endColumn = null, scroll = 100) {
 	if (endColumn === null) {
 		endColumn = config.boards * 32;
 	}
@@ -91,7 +92,8 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 			startColumn == boardInterval.startColumn &&
 			endColumn == boardInterval.endColumn &&
 			textColor == boardInterval.textColor &&
-			backgroundColor == boardInterval.backgroundColor
+			backgroundColor == boardInterval.backgroundColor &&
+			scroll == boardInterval.scroll
 		) return
 	}
 
@@ -136,7 +138,8 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 			startPixel,
 			endPixel,
 			textColor,
-			backgroundColor
+			backgroundColor,
+			scroll
 		}
 	} else {
 		for (let i = 0; i < 2 * 6 + 1; i++) {
@@ -151,13 +154,14 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 				showString(boardPixels, startFrame, textColor, backgroundColor, pixels, startPixel, endPixel);
 				startFrame = (startFrame + 1) % boardPixels.length;
 				ws281x.render();
-			}, 200),
+			}, scroll),
 			startColumn,
 			endColumn,
 			startPixel,
 			endPixel,
 			textColor,
-			backgroundColor
+			backgroundColor,
+			scroll
 		}
 	}
 }
