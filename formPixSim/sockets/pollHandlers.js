@@ -12,6 +12,7 @@ const PIXELS_PER_LETTER = 5;
  */
 function handleClassUpdate(webIo) {
 	return (classroomData) => {
+		// console.log('handleClassUpdate called with data:', classroomData);
 		const state = require('../state');
 		const { pixels, config, boardIntervals, ws281x, pollData, timerData } = state;
 		const newPollData = classroomData.poll

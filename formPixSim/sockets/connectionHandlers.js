@@ -15,7 +15,6 @@ function handleConnectError(socket, boardIntervals) {
 		if (error.message == 'xhr poll error') console.log('no connection');
 		else console.log(error.message);
 
-		const state = require('../state');
 		state.connected = false
 
 		boardIntervals = boardIntervals.filter(boardInterval => {
@@ -38,7 +37,6 @@ function handleConnectError(socket, boardIntervals) {
  */
 function handleConnect(socket, boardIntervals) {
 	return () => {
-		const state = require('../state');
 		console.log('connected')
 
 		state.connected = true

@@ -124,6 +124,6 @@ socket.on('vbTimer', handleVBTimer());
 // SERVER START
 // ============================================================================
 
-httpServer.listen(state.config.port, async () => {
+httpServer.listen(state.config.port, '0.0.0.0', async () => {
 	console.log(`Server running on port: ${state.config.port}`);
 });
