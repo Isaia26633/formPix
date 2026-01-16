@@ -22,7 +22,7 @@ const displayRoutes = require('./routes/displayRoutes');
 const soundRoutes = require('./routes/soundRoutes');
 
 // Import socket handlers
-const { handleConnectError, handleConnect, handleSetClass } = require('./sockets/connectionHandlers');
+const { handleConnectError, handleConnect, handleSetClass, handleRequestClassUpdate } = require('./sockets/connectionHandlers');
 const { 
 	handleHelpSound, 
 	handleBreakSound, 
@@ -73,7 +73,7 @@ state.socket = socket;
 socket.on('connect_error', handleConnectError(socket, state.boardIntervals));
 socket.on('connect', handleConnect(socket, state.boardIntervals));
 socket.on('setClass', handleSetClass(socket, state.boardIntervals));
-
+socket.on('requestClassUpdate', handleRequestClassUpdate(socket));
 // Sound events
 socket.on('helpSound', handleHelpSound);
 socket.on('breakSound', handleBreakSound);
