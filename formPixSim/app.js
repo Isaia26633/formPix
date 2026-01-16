@@ -19,9 +19,10 @@ const handle404 = require('./middleware/handle404');
 const pixelRoutes = require('./routes/pixelRoutes');
 const displayRoutes = require('./routes/displayRoutes');
 const soundRoutes = require('./routes/soundRoutes');
+const infoRoutes = require('./routes/infoRoutes');
 
 // Import socket handlers
-const { handleConnectError, handleConnect, handleSetClass } = require('./sockets/connectionHandlers');
+const { handleConnectError, handleConnect, handleSetClass, handleRequestClassUpdate } = require('./sockets/connectionHandlers');
 const { 
 	handleHelpSound, 
 	handleBreakSound, 
@@ -70,6 +71,7 @@ app.use(validateQueryParams);
 app.use('/api', pixelRoutes);
 app.use('/api', displayRoutes);
 app.use('/api', soundRoutes);
+app.use('/api', infoRoutes);
 
 // Main page
 app.get('/', (request, response) => {
@@ -102,6 +104,7 @@ const socket = state.socket;
 socket.on('connect_error', handleConnectError(socket, state.boardIntervals));
 socket.on('connect', handleConnect(socket, state.boardIntervals));
 socket.on('setClass', handleSetClass(socket, state.boardIntervals));
+socket.on('requestClassUpdate', handleRequestClassUpdate(socket));
 
 // Sound events
 socket.on('helpSound', handleHelpSound(webIo));
