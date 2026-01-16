@@ -1,5 +1,5 @@
 /**
- * FormPixSim - LED Display Simulator
+ * FormPix - LED Display Controller
  * Main application file with organized routes and middleware
  */
 
