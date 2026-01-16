@@ -19,6 +19,7 @@ const handle404 = require('./middleware/handle404');
 const pixelRoutes = require('./routes/pixelRoutes');
 const displayRoutes = require('./routes/displayRoutes');
 const soundRoutes = require('./routes/soundRoutes');
+const infoRoutes = require('./routes/infoRoutes');
 
 // Import socket handlers
 const { handleConnectError, handleConnect, handleSetClass, handleRequestClassUpdate } = require('./sockets/connectionHandlers');
@@ -70,6 +71,7 @@ app.use(validateQueryParams);
 app.use('/api', pixelRoutes);
 app.use('/api', displayRoutes);
 app.use('/api', soundRoutes);
+app.use('/api', infoRoutes);
 
 // Main page
 app.get('/', (request, response) => {
