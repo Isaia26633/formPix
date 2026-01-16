@@ -1,22 +1,23 @@
 /**
- * Socket event handlers for connection and disconnection
+ * Socket connection handlers
  */
 
+const logger = require('../utils/logger');
 const { fill, gradient } = require('../utils/pixelOps');
 const { displayBoard, getStringColumnLength } = require('../utils/displayUtils');
-const { playSound } = require('../utils/soundUtils');
 
 /**
  * Handle connection error
  */
 function handleConnectError(socket, boardIntervals) {
 	return (error) => {
-		if (error.message == 'xhr poll error') console.log('no connection');
-		else console.log(error.message);
+		if (error.message == 'xhr poll error') {
+			logger.warn('FormBar connection lost: xhr poll error');
+		} else {
+			logger.error('FormBar connection error', { error: error.message });
+		}
 
-		const { pixels, config, ws281x } = require('../state');
-		
-		let state = require('../state');
+		const state = require('../state');
 		state.connected = false
 
 		boardIntervals = boardIntervals.filter(boardInterval => {
@@ -24,6 +25,7 @@ function handleConnectError(socket, boardIntervals) {
 			return false
 		})
 
+		const { pixels, config, ws281x } = state;
 		fill(pixels, 0x000000)
 		ws281x.render()
 
@@ -34,36 +36,33 @@ function handleConnectError(socket, boardIntervals) {
 }
 
 /**
- * Handle connection
+ * Handle connect
  */
 function handleConnect(socket, boardIntervals) {
 	return () => {
-		console.log('connected')
+		const state = require('../state');
+		logger.info('Connected to FormBar successfully');
 
-		const { pixels, config, ws281x } = require('../state');
-		
-		let state = require('../state');
 		state.connected = true
 
-		socket.emit('getActiveClass', config.api);
+		socket.emit('getActiveClass', state.config.api);
 
+		const { pixels, config, ws281x } = state;
 		let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
 		if (!display) return
 		boardIntervals.push(display)
-
-		const { player } = require('../utils/soundUtils');
-		player.play('./sfx/sfx_bootup02.wav')
 	}
 }
 
 /**
- * Handle class change
+ * Handle set class
  */
 function handleSetClass(socket, boardIntervals) {
 	return (userClassId) => {
-		const { pixels, config, ws281x } = require('../state');
+		const state = require('../state');
 		
 		if (userClassId == null) {
+			const { pixels, config, ws281x } = state;
 			fill(pixels, 0x000000, 0, config.barPixels)
 
 			let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
@@ -75,9 +74,7 @@ function handleSetClass(socket, boardIntervals) {
 			socket.emit('classUpdate')
 			socket.emit('vbTimer')
 		}
-		console.log('Moved to class id:', userClassId);
-		
-		let state = require('../state');
+		logger.info('Moved to class', { classId: userClassId });
 		state.classId = userClassId;
 	}
 }

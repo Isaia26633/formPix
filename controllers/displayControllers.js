@@ -2,6 +2,7 @@
  * Controllers for display and text routes
  */
 
+const logger = require('../utils/logger');
 const { textToHexColor } = require('../utils/colorUtils');
 const { displayBoard } = require('../utils/displayUtils');
 
@@ -41,13 +42,16 @@ async function sayController(req, res) {
 
 		let display = displayBoard(pixels, text, textColor, backgroundColor, config, boardIntervals, ws281x)
 		if (!display) {
+			logger.error('Display board failed in sayController', { text });
 			res.status(500).json({ error: 'There was a server error try again' })
 			return
 		}
 		boardIntervals.push(display)
 
+		logger.info('Say controller completed', { text, textColor: textColor.toString(16), backgroundColor: backgroundColor.toString(16) });
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
+		logger.error('Error in sayController', { error: err.message, stack: err.stack, query: req.query });
 		res.status(500).json({ error: 'There was a server error try again' })
 	}
 }

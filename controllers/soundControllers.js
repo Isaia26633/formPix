@@ -2,10 +2,11 @@
  * Controllers for sound routes
  */
 
+const logger = require('../utils/logger');
 const { playSound } = require('../utils/soundUtils');
 
 /**
- * POST /api/getSounds - Get list of available sounds
+ * GET /api/getSounds - Get list of available sounds
  */
 async function getSoundsController(req, res) {
 	try {
@@ -18,6 +19,7 @@ async function getSoundsController(req, res) {
 		else if (type == null) res.status(200).json(sounds)
 		else res.status(400).json({ error: 'Invalid type' })
 	} catch (err) {
+		logger.error('Error in getSoundsController', { error: err.message, stack: err.stack });
 		res.status(500).json({ error: 'There was a server error try again' })
 	}
 }
@@ -35,11 +37,14 @@ async function playSoundController(req, res) {
 			let status = 400
 			if (sound.endsWith(' does not exist.')) status = 404
 
+			logger.warn('Play sound failed', { error: sound, bgm, sfx });
 			res.status(status).json({ error: sound })
-		} else if (sound == true) res.status(200).json({ message: 'ok' })
-		else res.status(500).json({ error: 'There was a server error try again' })
+		} else if (sound == true) {
+			logger.info('Sound played successfully', { bgm, sfx });
+			res.status(200).json({ message: 'ok' })
+		} else res.status(500).json({ error: 'There was a server error try again' })
 	} catch (err) {
-		console.log(err);
+		logger.error('Error in playSoundController', { error: err.message, stack: err.stack, query: req.query });
 		res.status(500).json({ error: 'There was a server error try again' })
 	}
 }

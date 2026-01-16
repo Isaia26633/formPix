@@ -5,6 +5,7 @@
 
 const express = require('express');
 const http = require('http');
+const logger = require('./utils/logger');
 
 // Load application state
 const state = require('./state');
@@ -91,7 +92,7 @@ app.use(handle404);
 // ============================================================================
 
 webIo.on('connection', (socket) => {
-	console.log('Browser client connected');
+	logger.info('Browser client connected', { socketId: socket.id });
 });
 
 // ============================================================================
@@ -125,5 +126,5 @@ socket.on('vbTimer', handleVBTimer());
 // ============================================================================
 
 httpServer.listen(state.config.port, async () => {
-	console.log(`Server running on port: ${state.config.port}`);
+	logger.info(`Server running on port: ${state.config.port}`);
 });

@@ -2,18 +2,19 @@
  * Socket event handler for poll updates
  */
 
+const logger = require('../utils/logger');
 const util = require('util');
 const { fill, gradient } = require('../utils/pixelOps');
 const { displayBoard, getStringColumnLength } = require('../utils/displayUtils');
-const { player } = require('../utils/soundUtils');
 const PIXELS_PER_LETTER = 5;
 
 /**
  * Handle class update with poll data
  */
-function handleClassUpdate() {
+function handleClassUpdate(webIo) {
 	return (classroomData) => {
-		const { pixels, config, boardIntervals, pollData, timerData, ws281x } = require('../state');
+		const state = require('../state');
+		const { pixels, config, boardIntervals, ws281x, pollData, timerData } = state;
 		const newPollData = classroomData.poll
 		let pixelsPerStudent
 		let text = ''
@@ -24,16 +25,17 @@ function handleClassUpdate() {
 
 		if (util.isDeepStrictEqual(newPollData, pollData)) return
 
+		logger.debug('Class update received', { pollStatus: newPollData.status, pollPrompt: newPollData.prompt });
+
 		if (!newPollData.status) {
 			fill(pixels, 0x000000, 0, config.barPixels)
 
-		let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
+			let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
 			if (display) {
 				boardIntervals.push(display)
 				ws281x.render()
 			}
 
-			let state = require('../state');
 			state.pollData = newPollData
 			return
 		}
@@ -50,18 +52,6 @@ function handleClassUpdate() {
 
 		for (let poll of Object.values(newPollData.responses)) {
 			pollResponses += poll.responses
-		}
-
-		if (newPollData.totalResponses === 6 && newPollData.totalResponders === 9) {
-			player.play('./sfx/clicknice.wav')
-		}
-
-		if (newPollData.totalResponses === 6 && newPollData.totalResponders === 7) {
-			player.play('./sfx/brainrot.wav')
-		}
-
-		if (newPollData.totalResponses === 4 && newPollData.totalResponders === 20) {
-			player.play('./sfx/snoop.wav')
 		}
 
 		if (!timerData.active) {
@@ -84,23 +74,31 @@ function handleClassUpdate() {
 					const upResponses = findResponse('Up')
 					if (upResponses && upResponses.responses == newPollData.totalResponders) {
 						gradient(pixels, 0x0000FF, 0xFF0000, 0, config.barPixels)
-						let text = [
-							'Skibidi Rizz!',
-							'Max Gamer!'
-						]
-					let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0x00FF00, 0x000000, config, boardIntervals, ws281x)
+						let display = displayBoard(pixels, 'Max Gamer', 0x00FF00, 0x000000, config, boardIntervals, ws281x)
 						if (!display) return
 						boardIntervals.push(display)
-						player.play('./sfx/sfx_success01.wav')
+
+						const simPlayer = {
+							play: async (file) => {
+								let sockets = await webIo.fetchSockets()
+								for (let s of sockets) s.emit('play', file)
+							}
+						}
+						simPlayer.play('./sfx/sfx_success01.wav')
 
 						specialDisplay = true
-
 						return
 					}
 
 					const wiggleResponse = findResponse('Wiggle')
 					if (wiggleResponse && wiggleResponse.responses == newPollData.totalResponders) {
-						player.play('./sfx/bruh.wav')
+						const simPlayer = {
+							play: async (file) => {
+								let sockets = await webIo.fetchSockets()
+								for (let s of sockets) s.emit('play', file)
+							}
+						}
+						simPlayer.play('./sfx/bruh.wav')
 
 						let text = [
 							'Wiggle Nation: Where democracy meets indecision!',
@@ -109,7 +107,7 @@ function handleClassUpdate() {
 
 						text = text[Math.floor(Math.random() * text.length)]
 
-let display = displayBoard(pixels, text, 0x00FFFF, 0x000000, config, boardIntervals, ws281x)
+						let display = displayBoard(pixels, text, 0x00FFFF, 0x000000, config, boardIntervals, ws281x)
 						if (!display) return
 						boardIntervals.push(display)
 
@@ -118,12 +116,14 @@ let display = displayBoard(pixels, text, 0x00FFFF, 0x000000, config, boardInterv
 
 					const downResponse = findResponse('Down')
 					if (downResponse && downResponse.responses == newPollData.totalResponders) {
-						player.play('./sfx/wompwomp.wav')
-						let text = [
-							'Git Gud',
-							'Skill issue'
-						]
-let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0xFF0000, 0x000000, config, boardIntervals, ws281x)
+						const simPlayer = {
+							play: async (file) => {
+								let sockets = await webIo.fetchSockets()
+								for (let s of sockets) s.emit('play', file)
+							}
+						}
+						simPlayer.play('./sfx/wompwomp.wav')
+						let display = displayBoard(pixels, 'Git Gud', 0xFF0000, 0x000000, config, boardIntervals, ws281x)
 						if (!display) return
 						boardIntervals.push(display)
 
@@ -191,7 +191,6 @@ let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)]
 			if (display) boardIntervals.push(display)
 		}
 
-		let state = require('../state');
 		state.pollData = newPollData
 
 		ws281x.render()

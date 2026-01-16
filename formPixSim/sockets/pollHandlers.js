@@ -2,6 +2,7 @@
  * Socket event handler for poll updates
  */
 
+const logger = require('../utils/logger');
 const util = require('util');
 const { fill, gradient } = require('../utils/pixelOps');
 const { displayBoard, getStringColumnLength } = require('../utils/displayUtils');
@@ -23,6 +24,8 @@ function handleClassUpdate(webIo) {
 		let specialDisplay = false
 
 		if (util.isDeepStrictEqual(newPollData, pollData)) return
+
+		logger.debug('Class update received', { pollStatus: newPollData.status, pollPrompt: newPollData.prompt });
 
 		if (!newPollData.status) {
 			fill(pixels, 0x000000, 0, config.barPixels)
