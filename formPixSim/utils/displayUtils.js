@@ -119,7 +119,7 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 			boardPixels.push(col);
 		}
 
-		const unspacedLetters = ['♪']
+		const unspacedLetters = ['♪', '⛊', '⛉'];
 		if (!unspacedLetters.includes(letter)) boardPixels.push(Array(8).fill(0));
 	}
 
