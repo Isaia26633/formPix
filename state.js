@@ -9,6 +9,11 @@ const env = require('dotenv');
 const { io } = require('socket.io-client');
 env.config();
 
+console.log('Raw env values:');
+console.log('  pin:', process.env.pin);
+console.log('  brightness:', process.env.brightness);
+console.log('  barPixels:', process.env.barPixels);
+
 // Load config from the .env
 const config = {
     formbarUrl: process.env.formbarUrl || '',
@@ -20,6 +25,11 @@ const config = {
     boards: parseInt(process.env.boards) || 0,
     port: parseInt(process.env.port) || 421
 };
+
+console.log('Parsed config:');
+console.log('  pin:', config.pin);
+console.log('  brightness:', config.brightness);
+console.log('  barPixels:', config.barPixels);
 
 // Constants
 const BOARD_WIDTH = 32;
