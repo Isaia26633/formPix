@@ -3,34 +3,45 @@
  */
 
 const fs = require('fs');
+const { execSync } = require('child_process');
 
-// Initialize player with fallback options
-let player = null;
-let playerType = 'none';
-
-// Try different audio players in order of preference
-const players = [
-	{ name: 'vlc', cmd: 'cvlc' },
-	{ name: 'omxplayer', cmd: 'omxplayer' },
-	{ name: 'mpg123', cmd: 'mpg123' },
-	{ name: 'afplay', cmd: 'afplay' },  // macOS
-	{ name: 'mplayer', cmd: 'mplayer' }
-];
-
-for (const p of players) {
+// Helper function to check if a command exists
+function commandExists(cmd) {
 	try {
-		player = require('play-sound')({ player: p.cmd });
-		playerType = p.name;
-		console.log(`✓ Audio player initialized with ${p.name}`);
-		break;
-	} catch (err) {
-		// Try next player
+		execSync(`where ${cmd}`, { stdio: 'ignore', shell: 'powershell.exe' });
+		return true;
+	} catch {
+		try {
+			execSync(`which ${cmd}`, { stdio: 'ignore' });
+			return true;
+		} catch {
+			return false;
+		}
 	}
 }
 
-if (!player) {
-	console.warn('⚠ No audio player found - audio playback disabled');
-	console.warn('  Install one of: vlc, omxplayer, mpg123, mplayer');
+// Initialize player with fallback: try omxplayer, then vlc
+let player;
+let playerType = 'none';
+
+if (commandExists('omxplayer')) {
+	player = require('play-sound')({ player: 'omxplayer' });
+	playerType = 'omxplayer';
+	console.log('✓ Initialized audio player with omxplayer');
+} else if (commandExists('cvlc')) {
+	player = require('play-sound')({ player: 'cvlc' });
+	playerType = 'vlc';
+	console.log('✓ Initialized audio player with cvlc');
+} else {
+	try {
+		player = require('play-sound')({});
+		playerType = 'default';
+		console.log('✓ Initialized audio player with default player');
+	} catch (error) {
+		player = null;
+		playerType = 'none';
+		console.warn('⚠ Audio playback disabled - no player available');
+	}
 }
 
 /**
@@ -49,14 +60,11 @@ function playSound({ bgm, sfx }) {
 	if (bgm) {
 		if (fs.existsSync(`./bgm/${bgm}`)) {
 			try {
-				const audio = player.play(`./bgm/${bgm}`, (err) => {
-					if (err) console.error('Error playing bgm:', err.message);
+				player.play(`./bgm/${bgm}`, (err) => {
+					if (err && !err.killed) {
+						console.error('Error playing bgm:', err.message);
+					}
 				});
-				if (audio && audio.on) {
-					audio.once('error', (err) => {
-						console.error('Audio process error (bgm):', err.message);
-					});
-				}
 				return true
 			} catch (err) {
 				console.error('Error playing bgm:', err.message);
@@ -70,14 +78,11 @@ function playSound({ bgm, sfx }) {
 	if (sfx) {
 		if (fs.existsSync(`./sfx/${sfx}`)) {
 			try {
-				const audio = player.play(`./sfx/${sfx}`, (err) => {
-					if (err) console.error('Error playing sfx:', err.message);
+				player.play(`./sfx/${sfx}`, (err) => {
+					if (err && !err.killed) {
+						console.error('Error playing sfx:', err.message);
+					}
 				});
-				if (audio && audio.on) {
-					audio.once('error', (err) => {
-						console.error('Audio process error (sfx):', err.message);
-					});
-				}
 				return true
 			} catch (err) {
 				console.error('Error playing sfx:', err.message);

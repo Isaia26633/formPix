@@ -2,7 +2,6 @@
  * Controllers for LED pixel routes
  */
 
-const logger = require('../utils/logger');
 const { textToHexColor } = require('../utils/colorUtils');
 const { fill, gradient } = require('../utils/pixelOps');
 const { getPixelNumber } = require('../utils/pixelUtils');
@@ -29,10 +28,8 @@ function percentageController(req, res) {
 		let length = Math.floor((percent / 100) * pixels.length)
 		fill(pixels, color, 0, length)
 		ws281x.render()
-		logger.info('Percentage fill completed', { percent, color: color.toString(16), length });
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
-		logger.error('Error in percentageController', { error: err.message, stack: err.stack, query: req.query });
 		res.status(500).json({ error: 'There was a server error try again' })
 	}
 }
@@ -93,10 +90,8 @@ async function fillByPercentController(req, res) {
 		fill(pixels, fillColor, startPos, fillLength);
 
 		ws281x.render();
-		logger.info('Fill by percent completed', { percent, fillColor: fillColor.toString(16), bgColor: bgColor.toString(16), length });
 		res.status(200).json({ message: 'ok' });
 	} catch (err) {
-		logger.error('Error in fillByPercentController', { error: err.message, stack: err.stack, query: req.query });
 		res.status(500).json({ error: 'There was a server error try again' });
 	}
 }
@@ -132,10 +127,8 @@ async function fillController(req, res) {
 
 		fill(pixels, color, start, length)
 		ws281x.render()
-		logger.info('Fill completed', { color: color.toString(16), start, length });
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
-		logger.error('Error in fillController', { error: err.message, stack: err.stack, query: req.query });
 		res.status(500).json({ error: 'There was a server error try again' })
 	}
 }
@@ -188,10 +181,8 @@ async function gradientController(req, res) {
 
 		gradient(pixels, startColor, endColor, start, length)
 		ws281x.render()
-		logger.info('Gradient completed', { startColor: startColor.toString(16), endColor: endColor.toString(16), start, length });
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
-		logger.error('Error in gradientController', { error: err.message, stack: err.stack, query: req.query });
 		res.status(500).json({ error: 'There was a server error try again' })
 	}
 }
@@ -225,10 +216,8 @@ async function setPixelController(req, res) {
 
 		ws281x.render()
 
-		logger.info('Set pixel completed', { pixel, pixelNumber, color: color.toString(16) });
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
-		logger.error('Error in setPixelController', { error: err.message, stack: err.stack, query: req.query });
 		res.status(500).json({ error: 'There was a server error try again' })
 	}
 }
@@ -282,10 +271,9 @@ async function setPixelsController(req, res) {
 
 		ws281x.render()
 
-		logger.info('Set pixels completed', { count: inputPixels.length });
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
-		logger.error('Error in setPixelsController', { error: err.message, stack: err.stack, query: req.query });
+		// console.log(err);
 		res.status(500).json({ error: 'There was a server error try again' })
 	}
 }
