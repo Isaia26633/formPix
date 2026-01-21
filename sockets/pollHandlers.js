@@ -6,12 +6,13 @@ const logger = require('../utils/logger');
 const util = require('util');
 const { fill, gradient } = require('../utils/pixelOps');
 const { displayBoard, getStringColumnLength } = require('../utils/displayUtils');
+const { playSound } = require('../utils/soundUtils');
 const PIXELS_PER_LETTER = 5;
 
 /**
  * Handle class update with poll data
  */
-function handleClassUpdate(webIo) {
+function handleClassUpdate() {
 	return (classroomData) => {
 		const state = require('../state');
 		const { pixels, config, boardIntervals, ws281x, pollData, timerData } = state;
@@ -78,13 +79,7 @@ function handleClassUpdate(webIo) {
 						if (!display) return
 						boardIntervals.push(display)
 
-						const simPlayer = {
-							play: async (file) => {
-								let sockets = await webIo.fetchSockets()
-								for (let s of sockets) s.emit('play', file)
-							}
-						}
-						simPlayer.play('./sfx/sfx_success01.wav')
+						playSound({ sfx: 'sfx_success01.wav' });
 
 						specialDisplay = true
 						return
@@ -92,13 +87,7 @@ function handleClassUpdate(webIo) {
 
 					const wiggleResponse = findResponse('Wiggle')
 					if (wiggleResponse && wiggleResponse.responses == newPollData.totalResponders) {
-						const simPlayer = {
-							play: async (file) => {
-								let sockets = await webIo.fetchSockets()
-								for (let s of sockets) s.emit('play', file)
-							}
-						}
-						simPlayer.play('./sfx/bruh.wav')
+						playSound({ sfx: 'bruh.wav' });
 
 						let text = [
 							'Wiggle Nation: Where democracy meets indecision!',
@@ -116,13 +105,7 @@ function handleClassUpdate(webIo) {
 
 					const downResponse = findResponse('Down')
 					if (downResponse && downResponse.responses == newPollData.totalResponders) {
-						const simPlayer = {
-							play: async (file) => {
-								let sockets = await webIo.fetchSockets()
-								for (let s of sockets) s.emit('play', file)
-							}
-						}
-						simPlayer.play('./sfx/wompwomp.wav')
+						playSound({ sfx: 'wompwomp.wav' });
 						let display = displayBoard(pixels, 'Git Gud', 0xFF0000, 0x000000, config, boardIntervals, ws281x)
 						if (!display) return
 						boardIntervals.push(display)
