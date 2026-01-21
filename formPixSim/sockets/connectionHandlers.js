@@ -2,7 +2,6 @@
  * Socket connection handlers
  */
 
-const logger = require('../utils/logger');
 const { fill, gradient } = require('../utils/pixelOps');
 const { displayBoard, getStringColumnLength } = require('../utils/displayUtils');
 const state = require('../state');
@@ -13,13 +12,9 @@ const state = require('../state');
  */
 function handleConnectError(socket, boardIntervals) {
 	return (error) => {
-		if (error.message == 'xhr poll error') {
-			logger.warn('FormBar connection lost: xhr poll error');
-		} else {
-			logger.error('FormBar connection error', { error: error.message });
-		}
+		if (error.message == 'xhr poll error') console.log('no connection');
+		else console.log(error.message);
 
-		const state = require('../state');
 		state.connected = false
 
 		boardIntervals = boardIntervals.filter(boardInterval => {
@@ -42,8 +37,7 @@ function handleConnectError(socket, boardIntervals) {
  */
 function handleConnect(socket, boardIntervals) {
 	return () => {
-		const state = require('../state');
-		logger.info('Connected to FormBar successfully');
+		console.log('connected')
 
 		state.connected = true
 
@@ -91,7 +85,7 @@ function handleSetClass(socket, boardIntervals) {
 				handleRequestClassUpdate(socket)();
 			}
 		}
-		logger.info('Moved to class', { classId: userClassId });
+		console.log('Moved to class id:', userClassId);
 		state.classId = userClassId;
 	}
 }

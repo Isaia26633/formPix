@@ -6,6 +6,7 @@ const fs = require('fs');
 const ws281x = require('rpi-ws281x-native');
 const { loadSounds } = require('./utils/soundUtils');
 const env = require('dotenv');
+const { io } = require('socket.io-client');
 env.config();
 
 console.log('Raw env values:');
@@ -53,13 +54,20 @@ for (let i = 0; i < pixels.length; i++) {
 }
 ws281x.render();
 
+// Initialize socket.io client connection to formbar
+const socket = io(config.formbarUrl, {
+	extraHeaders: {
+		api: config.api
+	}
+});
+
 // State
 let state = {
 	config,
 	pixels,
 	ws281x,
 	connected: false,
-	socket: null,
+	socket,
 	classId: null,
 	pollData: {},
 	boardIntervals: [],
