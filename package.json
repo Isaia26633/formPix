@@ -11,8 +11,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "dotenv": "^16.0.0",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
     "play-sound": "^1.1.6",
     "rpi-ws281x-native": "^1.0.4",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^5.0.0"
   },

@@ -5,6 +5,7 @@
 
 const express = require('express');
 const http = require('http');
+const { io } = require('socket.io-client');
 const logger = require('./utils/logger');
 
 // Load application state
@@ -99,7 +100,13 @@ webIo.on('connection', (socket) => {
 // FORMBAR SOCKET.IO SETUP
 // ============================================================================
 
-const socket = state.socket;
+const socket = io(state.config.formbarUrl, {
+	extraHeaders: {
+		api: state.config.api
+	}
+});
+
+state.socket = socket;
 
 // Connection events
 socket.on('connect_error', handleConnectError(socket, state.boardIntervals));
@@ -126,5 +133,5 @@ socket.on('vbTimer', handleVBTimer());
 // ============================================================================
 
 httpServer.listen(state.config.port, async () => {
-	logger.info(`Server running on port: ${state.config.port}`);
+	logger.info(`Server is up and running on port: ${state.config.port}`);
 });
