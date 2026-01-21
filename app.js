@@ -1,5 +1,5 @@
 /**
- * FormPixSim - LED Display Simulator
+ * FormPix - LED Display Controller
  * Main application file with organized routes and middleware
  */
 
@@ -7,6 +7,18 @@ const express = require('express');
 const http = require('http');
 const { io } = require('socket.io-client');
 const logger = require('./utils/logger');
+
+// Handle uncaught errors from audio player spawning
+process.on('uncaughtException', (err) => {
+	if (err.code === 'ENOENT' && err.syscall === 'spawn omxplayer') {
+		logger.warn('omxplayer not found. Install VLC: sudo apt-get install vlc');
+	} else if (err.code === 'ENOENT' && err.syscall === 'spawn cvlc') {
+		logger.warn('VLC not found. Install it: sudo apt-get install vlc');
+	} else {
+		logger.error('Uncaught exception', { error: err.message, code: err.code, stack: err.stack });
+		throw err; // Re-throw non-audio errors
+	}
+});
 
 // Load application state
 const state = require('./state');

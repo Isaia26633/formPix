@@ -4,21 +4,33 @@
 
 const fs = require('fs');
 
-// Initialize player with fallback: try omxplayer, then vlc
-let player;
-try {
-	player = require('play-sound')({ player: 'omxplayer' });
-	console.log('✓ Initialized audio player with omxplayer');
-} catch (omxError) {
-	console.warn('✗ omxplayer failed, falling back to vlc:', omxError.message);
+// Initialize player with fallback options
+let player = null;
+let playerType = 'none';
+
+// Try different audio players in order of preference
+const players = [
+	{ name: 'vlc', cmd: 'cvlc' },
+	{ name: 'omxplayer', cmd: 'omxplayer' },
+	{ name: 'mpg123', cmd: 'mpg123' },
+	{ name: 'afplay', cmd: 'afplay' },  // macOS
+	{ name: 'mplayer', cmd: 'mplayer' }
+];
+
+for (const p of players) {
 	try {
-		player = require('play-sound')({ player: 'cvlc' });
-		console.log('✓ Initialized audio player with vlc');
-	} catch (vlcError) {
-		console.error('✗ vlc also failed:', vlcError.message);
-		player = null;
-		console.warn('⚠ Audio playback disabled - no player available');
+		player = require('play-sound')({ player: p.cmd });
+		playerType = p.name;
+		console.log(`✓ Audio player initialized with ${p.name}`);
+		break;
+	} catch (err) {
+		// Try next player
 	}
+}
+
+if (!player) {
+	console.warn('⚠ No audio player found - audio playback disabled');
+	console.warn('  Install one of: vlc, omxplayer, mpg123, mplayer');
 }
 
 /**
@@ -37,7 +49,14 @@ function playSound({ bgm, sfx }) {
 	if (bgm) {
 		if (fs.existsSync(`./bgm/${bgm}`)) {
 			try {
-				player.play(`./bgm/${bgm}`)
+				const audio = player.play(`./bgm/${bgm}`, (err) => {
+					if (err) console.error('Error playing bgm:', err.message);
+				});
+				if (audio && audio.on) {
+					audio.once('error', (err) => {
+						console.error('Audio process error (bgm):', err.message);
+					});
+				}
 				return true
 			} catch (err) {
 				console.error('Error playing bgm:', err.message);
@@ -51,7 +70,14 @@ function playSound({ bgm, sfx }) {
 	if (sfx) {
 		if (fs.existsSync(`./sfx/${sfx}`)) {
 			try {
-				player.play(`./sfx/${sfx}`)
+				const audio = player.play(`./sfx/${sfx}`, (err) => {
+					if (err) console.error('Error playing sfx:', err.message);
+				});
+				if (audio && audio.on) {
+					audio.once('error', (err) => {
+						console.error('Audio process error (sfx):', err.message);
+					});
+				}
 				return true
 			} catch (err) {
 				console.error('Error playing sfx:', err.message);
