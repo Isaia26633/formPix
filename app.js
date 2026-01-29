@@ -1,10 +1,11 @@
 /**
- * FormPixSim - LED Display Simulator
+ * FormPix - LED Display Controller
  * Main application file with organized routes and middleware
  */
 
-const express = require('express');
 const http = require('http');
+const express = require('express');
+const { io } = require('socket.io-client');
 
 // Load application state
 const state = require('./state');
@@ -19,10 +20,9 @@ const handle404 = require('./middleware/handle404');
 const pixelRoutes = require('./routes/pixelRoutes');
 const displayRoutes = require('./routes/displayRoutes');
 const soundRoutes = require('./routes/soundRoutes');
-const infoRoutes = require('./routes/infoRoutes');
 
 // Import socket handlers
-const { handleConnectError, handleConnect, handleSetClass, handleRequestClassUpdate } = require('./sockets/connectionHandlers');
+const { handleConnectError, handleConnect, handleSetClass } = require('./sockets/connectionHandlers');
 const { 
 	handleHelpSound, 
 	handleBreakSound, 
@@ -43,81 +43,50 @@ const { handleVBTimer } = require('./sockets/timerHandlers');
 
 const app = express();
 const httpServer = http.createServer(app);
-const webIo = require('socket.io')(httpServer);
 
 // Middleware
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname + '/static'));
-app.use('/bgm', express.static(__dirname + '/bgm'));
-app.use('/sfx', express.static(__dirname + '/sfx'));
-
-// Set EJS as view engine
-app.set('view engine', 'ejs');
-app.set('views', __dirname + '/views');
-
-// Store webIo in state for event handlers
-state.webIo = webIo;
-state.ws281x.render = async () => {
-	let sockets = await webIo.fetchSockets();
-	for (let socket of sockets) {
-		socket.emit('render', new Array(...state.pixels));
-	}
-};
-
-// API Routes
 app.use(checkConnection);
 app.use(checkPermissions);
 app.use(validateQueryParams);
+
+// Routes
 app.use('/api', pixelRoutes);
 app.use('/api', displayRoutes);
 app.use('/api', soundRoutes);
-app.use('/api', infoRoutes);
-
-// Main page
-app.get('/', (request, response) => {
-	response.render('index', {
-		config: state.config,
-		BOARD_WIDTH: state.BOARD_WIDTH,
-		BOARD_HEIGHT: state.BOARD_HEIGHT,
-		pixels: state.pixels
-	});
-});
 
 // Error handling
 app.use(handle404);
 
 // ============================================================================
-// SOCKET.IO SETUP (WebSocket for browser clients)
+// SOCKET.IO SETUP
 // ============================================================================
 
-webIo.on('connection', (socket) => {
-	console.log('Browser client connected');
+const socket = io(state.config.formbarUrl, {
+	extraHeaders: {
+		api: state.config.api
+	}
 });
 
-// ============================================================================
-// FORMBAR SOCKET.IO SETUP
-// ============================================================================
-
-const socket = state.socket;
+state.socket = socket;
 
 // Connection events
 socket.on('connect_error', handleConnectError(socket, state.boardIntervals));
 socket.on('connect', handleConnect(socket, state.boardIntervals));
 socket.on('setClass', handleSetClass(socket, state.boardIntervals));
-socket.on('requestClassUpdate', handleRequestClassUpdate(socket));
+
 // Sound events
-socket.on('helpSound', handleHelpSound(webIo));
-socket.on('breakSound', handleBreakSound(webIo));
-socket.on('pollSound', handlePollSound(webIo));
-socket.on('removePollSound', handleRemovePollSound(webIo));
-socket.on('joinSound', handleJoinSound(webIo));
-socket.on('leaveSound', handleLeaveSound(webIo));
-socket.on('kickStudentsSound', handleKickStudentsSound(webIo));
-socket.on('endClassSound', handleEndClassSound(webIo));
-socket.on('timerSound', handleTimerSound(webIo));
+socket.on('helpSound', handleHelpSound());
+socket.on('breakSound', handleBreakSound());
+socket.on('pollSound', handlePollSound());
+socket.on('removePollSound', handleRemovePollSound());
+socket.on('joinSound', handleJoinSound());
+socket.on('leaveSound', handleLeaveSound());
+socket.on('kickStudentsSound', handleKickStudentsSound());
+socket.on('endClassSound', handleEndClassSound());
+socket.on('timerSound', handleTimerSound());
 
 // Poll and timer events
-socket.on('classUpdate', handleClassUpdate(webIo));
+socket.on('classUpdate', handleClassUpdate());
 socket.on('vbTimer', handleVBTimer());
 
 // ============================================================================
@@ -125,5 +94,5 @@ socket.on('vbTimer', handleVBTimer());
 // ============================================================================
 
 httpServer.listen(state.config.port, async () => {
-	console.log(`Server running on port: ${state.config.port}`);
+	console.log(`Server is up and running on port: ${state.config.port}`);
 });
