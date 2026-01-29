@@ -34,9 +34,9 @@ function gradient(pixels, startColor, endColor, start = 0, length = pixels.lengt
 	let currentColor = startColor
 
 	length = Math.floor(length)
-	if (length >= pixels.length - start) length = pixels.length - start
+	if (start + length > pixels.length) length = pixels.length - start
 
-	let stepColor = startColor.map((start, i) => (endColor[i] - start) / (length - 1))
+	let stepColor = length > 1 ? startColor.map((start, i) => (endColor[i] - start) / (length - 1)) : [0, 0, 0]
 
 	for (let i = 0; i < length; i++) {
 		currentColor = [

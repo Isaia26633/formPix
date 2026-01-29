@@ -52,6 +52,12 @@ function textToHexColor(color) {
 		return Number.parseInt(color, 16)
 	}
 
+	if (color.startsWith('0x')) {
+		color = color.slice(2);
+		if (color.length != 6) return "Hex color must be 6 characters long";
+		return Number.parseInt(color, 16)
+	}
+
 	color = safeJsonParse(color);
 	if (typeof color == 'string') return color;
 	if (color instanceof Error) throw color;
