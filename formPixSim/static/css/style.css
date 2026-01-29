@@ -1,6 +1,7 @@
 body {
 	margin: 0;
 	padding: 0.5rem;
+	background: #777;
 }
 
 * {
@@ -15,24 +16,24 @@ body {
 
 #bar {
 	display: flex;
-	gap: 5px;
+	gap: 2px;
 	flex-wrap: wrap;
 }
 
 #board {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 5px;
+	gap: 2px;
 }
 
 .column {
 	display: flex;
 	flex-direction: column;
-	gap: 5px;
+	gap: 2px;
 }
 
 .pixel {
 	height: 15px;
 	width: 15px;
-	border: 2px solid black;
+	border: 1px solid black;
 }

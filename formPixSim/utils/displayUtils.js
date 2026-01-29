@@ -2,7 +2,7 @@
  * Display and text rendering functions for simulation
  */
 
-const { letters } = require('../../letters');
+const { letters } = require ('../../letters');
 
 const PIXELS_PER_LETTER = 5;
 const BOARD_HEIGHT = 8;
@@ -42,7 +42,6 @@ function showString(boardPixels, startFrame, textColor, backgroundColor, pixels,
 
 			if (currentPixel >= endPixel) return
 		}
-
 		currentColumn = (currentColumn + 1) % newBoardPixels.length;
 	}
 }
@@ -67,13 +66,13 @@ function getStringColumnLength(text) {
  * @param {Object} ws281x - WebSocket renderer object
  * @param {number} [startColumn=0] - The starting column to display the string.
  * @param {number} [endColumn] - The ending column to display the string.
+ * @param {number} [scroll=100] - The speed of scrolling in milliseconds.
  */
-function displayBoard(pixels, string, textColor, backgroundColor, config, boardIntervals, ws281x, startColumn = 0, endColumn = null) {
+function displayBoard(pixels, string, textColor, backgroundColor, config, boardIntervals, ws281x, startColumn = 0, endColumn = null, scroll = 100) {
 	if (endColumn === null) {
 		endColumn = config.boards * 32;
 	}
 
-	string = string.toLowerCase();
 	let stringColumnLength = getStringColumnLength(string);
 
 	let startPixel = config.barPixels + startColumn * BOARD_HEIGHT
@@ -91,19 +90,29 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 		if (
 			string == boardInterval.string &&
 			startColumn == boardInterval.startColumn &&
-			endColumn == boardInterval.endColumn
+			endColumn == boardInterval.endColumn &&
+			textColor == boardInterval.textColor &&
+			backgroundColor == boardInterval.backgroundColor &&
+			scroll == boardInterval.scroll
 		) return
 	}
 
-	boardIntervals = boardIntervals.filter(boardInterval => {
+	// Clear overlapping intervals by mutating the array in place
+	const { fill } = require('./pixelOps');
+	for (let i = boardIntervals.length - 1; i >= 0; i--) {
+		let boardInterval = boardIntervals[i];
 		if (
 			startColumn < boardInterval.endColumn &&
 			endColumn > boardInterval.startColumn
 		) {
 			clearInterval(boardInterval.interval);
-			return false
-		} else return true
-	})
+			// Clear the pixels this interval was controlling
+			if (boardInterval.startPixel !== undefined && boardInterval.endPixel !== undefined) {
+				fill(pixels, 0x000000, boardInterval.startPixel, boardInterval.endPixel - boardInterval.startPixel);
+			}
+			boardIntervals.splice(i, 1);
+		}
+	}
 
 	for (let letter of string) {
 		if (!letters[letter]) continue
@@ -114,7 +123,8 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 			boardPixels.push(col);
 		}
 
-		boardPixels.push(Array(8).fill(0));
+		const unspacedLetters = ['♪', '⛊', '⛉'];
+		if (!unspacedLetters.includes(letter)) boardPixels.push(Array(8).fill(0));
 	}
 
 	if (boardPixels.length - 1 <= endColumn - startColumn) {
@@ -124,7 +134,12 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 		return {
 			string,
 			startColumn,
-			endColumn
+			endColumn,
+			startPixel,
+			endPixel,
+			textColor,
+			backgroundColor,
+			scroll
 		}
 	} else {
 		for (let i = 0; i < 2 * 6 + 1; i++) {
@@ -139,9 +154,14 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 				showString(boardPixels, startFrame, textColor, backgroundColor, pixels, startPixel, endPixel);
 				startFrame = (startFrame + 1) % boardPixels.length;
 				ws281x.render();
-			}, 200),
+			}, scroll),
 			startColumn,
-			endColumn
+			endColumn,
+			startPixel,
+			endPixel,
+			textColor,
+			backgroundColor,
+			scroll
 		}
 	}
 }

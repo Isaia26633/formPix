@@ -1,16 +1,25 @@
 {
-  "name": "formPix",
+  "name": "formpix",
   "version": "1.0.0",
   "description": "",
   "main": "app.js",
   "scripts": {
     "dev": "nodemon app",
-    "start": "node app"
+    "start": "node app",
+    "sim": "node ./formPixSim/app.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "dotenv": "^16.4.5",
+    "ejs": "^4.0.1",
+    "express": "^4.21.2",
     "play-sound": "^1.1.6",
-    "rpi-ws281x-native": "^1.0.4"
+    "rpi-ws281x-native": "^1.0.4",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.0"
   }
 }

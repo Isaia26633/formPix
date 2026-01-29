@@ -5,6 +5,10 @@
 const fs = require('fs');
 const ws281x = require('rpi-ws281x-native');
 const { loadSounds } = require('./utils/soundUtils');
+const env = require('dotenv');
+const { io } = require('socket.io-client');
+env.config();
+
 
 // Load config from the .env
 const config = {
@@ -41,12 +45,20 @@ for (let i = 0; i < pixels.length; i++) {
 }
 ws281x.render();
 
+// Initialize socket.io client connection to formbar
+const socket = io(config.formbarUrl, {
+	extraHeaders: {
+		api: config.api
+	}
+});
+
 // State
 let state = {
 	config,
 	pixels,
+	ws281x,
 	connected: false,
-	socket: null,
+	socket,
 	classId: null,
 	pollData: {},
 	boardIntervals: [],
@@ -62,7 +74,7 @@ let state = {
 	REQUIRED_PERMISSION
 };
 
-// Initialize folders
+// Initialize folders if not found
 if (!fs.existsSync('bgm')) {
 	fs.mkdirSync('bgm');
 }

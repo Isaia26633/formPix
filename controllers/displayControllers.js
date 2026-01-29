@@ -4,28 +4,29 @@
 
 const { textToHexColor } = require('../utils/colorUtils');
 const { displayBoard } = require('../utils/displayUtils');
-const ws281x = require('rpi-ws281x-native');
 
 /**
  * POST /api/say - Display text on the LED board
  */
 async function sayController(req, res) {
 	try {
-		const { pixels, config, boardIntervals } = require('../state');
+		console.log('sayController called');
+		console.log('req.query:', req.query);
 		
-		let { text, textColor, backgroundColor } = req.query
+		const { pixels, config, boardIntervals, ws281x } = require('../state');
+		
+		let { text, textColor, backgroundColor, scroll } = req.query
+		console.log('Extracted params - text:', text, 'textColor:', textColor, 'backgroundColor:', backgroundColor, 'scroll:', scroll);
 
 		if (!text) {
 			res.status(400).json({ error: 'You did not provide any text' })
 			return
 		}
 		if (!textColor) {
-			res.status(400).json({ error: 'You did not provide any textColor' })
-			return
+			textColor = '#FFFFFF' // default to white
 		}
 		if (!backgroundColor) {
-			res.status(400).json({ error: 'You did not provide any backgroundColor' })
-			return
+			backgroundColor = '#000000' // default to black
 		}
 
 		textColor = textToHexColor(textColor)
@@ -42,7 +43,9 @@ async function sayController(req, res) {
 		}
 		if (backgroundColor instanceof Error) throw backgroundColor
 
-		let display = displayBoard(pixels, text, textColor, backgroundColor, config, boardIntervals)
+		console.log('Calling displayBoard with scroll:', scroll ? parseInt(scroll) : 100);
+		let display = displayBoard(pixels, text, textColor, backgroundColor, config, boardIntervals, ws281x, 0, null, scroll ? parseInt(scroll) : 100)
+		console.log('displayBoard returned:', display);
 		if (!display) {
 			res.status(500).json({ error: 'There was a server error try again' })
 			return
@@ -51,6 +54,7 @@ async function sayController(req, res) {
 
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
+		console.error('Error in sayController:', err);
 		res.status(500).json({ error: 'There was a server error try again' })
 	}
 }

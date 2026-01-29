@@ -75,15 +75,15 @@ socket.on('connect', handleConnect(socket, state.boardIntervals));
 socket.on('setClass', handleSetClass(socket, state.boardIntervals));
 
 // Sound events
-socket.on('helpSound', handleHelpSound);
-socket.on('breakSound', handleBreakSound);
-socket.on('pollSound', handlePollSound);
-socket.on('removePollSound', handleRemovePollSound);
-socket.on('joinSound', handleJoinSound);
-socket.on('leaveSound', handleLeaveSound);
-socket.on('kickStudentsSound', handleKickStudentsSound);
-socket.on('endClassSound', handleEndClassSound);
-socket.on('timerSound', handleTimerSound);
+socket.on('helpSound', handleHelpSound());
+socket.on('breakSound', handleBreakSound());
+socket.on('pollSound', handlePollSound());
+socket.on('removePollSound', handleRemovePollSound());
+socket.on('joinSound', handleJoinSound());
+socket.on('leaveSound', handleLeaveSound());
+socket.on('kickStudentsSound', handleKickStudentsSound());
+socket.on('endClassSound', handleEndClassSound());
+socket.on('timerSound', handleTimerSound());
 
 // Poll and timer events
 socket.on('classUpdate', handleClassUpdate());
