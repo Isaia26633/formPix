@@ -2,6 +2,8 @@
  * Controllers for system info routes
  */
 
+const logger = require('../utils/logger');
+
 /**
  * GET /api/info - Get information about the LED display system
  */
@@ -19,6 +21,7 @@ async function getInfoController(req, res) {
 			stripType: config.stripType
 		});
 	} catch (err) {
+		logger.error('Error in getInfoController', { error: err.message, stack: err.stack });
 		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' });
 	}
 }

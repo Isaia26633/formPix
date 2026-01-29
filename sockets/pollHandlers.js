@@ -2,10 +2,11 @@
  * Socket event handler for poll updates
  */
 
+const logger = require('../utils/logger');
 const util = require('util');
 const { fill, gradient } = require('../utils/pixelOps');
 const { displayBoard, getStringColumnLength } = require('../utils/displayUtils');
-const { player } = require('../utils/soundUtils');
+const { playSound } = require('../utils/soundUtils');
 const PIXELS_PER_LETTER = 5;
 
 /**
@@ -13,7 +14,8 @@ const PIXELS_PER_LETTER = 5;
  */
 function handleClassUpdate() {
 	return (classroomData) => {
-		const { pixels, config, boardIntervals, pollData, timerData, ws281x } = require('../state');
+		const state = require('../state');
+		const { pixels, config, boardIntervals, ws281x, pollData, timerData } = state;
 		const newPollData = classroomData.poll
 		let pixelsPerStudent
 		let text = ''
@@ -24,48 +26,40 @@ function handleClassUpdate() {
 
 		if (util.isDeepStrictEqual(newPollData, pollData)) return
 
-		if (!newPollData.status) {
+		logger.debug('Class update received', { pollStatus: newPollData.status, pollPrompt: newPollData.prompt });
+
+		// Only clear the bar when poll is cleared (by the teacher), not when it's just ended
+		if (!newPollData.status && (!newPollData.responses || Object.keys(newPollData.responses).length === 0)) {
 			fill(pixels, 0x000000, 0, config.barPixels)
 
-		let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
+			let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
 			if (display) {
 				boardIntervals.push(display)
 				ws281x.render()
 			}
 
-			let state = require('../state');
 			state.pollData = newPollData
 			return
 		}
-
-		const getResponsesArray = () => {
-			if (Array.isArray(newPollData.responses)) {
-				return newPollData.responses
-			} else {
-				return Object.values(newPollData.responses)
+		
+		// Continue processing if poll has responses (whether active or ended)
+		if (newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0)) {
+			const getResponsesArray = () => {
+				if (Array.isArray(newPollData.responses)) {
+					return newPollData.responses
+				} else {
+					return Object.values(newPollData.responses)
+				}
 			}
-		}
 
-		const responsesArray = getResponsesArray()
+			const responsesArray = getResponsesArray()
 
-		for (let poll of Object.values(newPollData.responses)) {
-			pollResponses += poll.responses
-		}
+			for (let poll of Object.values(newPollData.responses)) {
+				pollResponses += poll.responses
+			}
 
-		if (newPollData.totalResponses === 6 && newPollData.totalResponders === 9) {
-			player.play('./sfx/clicknice.wav')
-		}
-
-		if (newPollData.totalResponses === 6 && newPollData.totalResponders === 7) {
-			player.play('./sfx/brainrot.wav')
-		}
-
-		if (newPollData.totalResponses === 4 && newPollData.totalResponders === 20) {
-			player.play('./sfx/snoop.wav')
-		}
-
-		if (!timerData.active) {
-			fill(pixels, 0x808080, 0, config.barPixels)
+			if (!timerData.active) {
+				fill(pixels, 0x808080, 0, config.barPixels)
 
 			for (let poll of Object.values(newPollData.responses)) {
 				poll.color = parseInt(poll.color.slice(1), 16)
@@ -84,23 +78,19 @@ function handleClassUpdate() {
 					const upResponses = findResponse('Up')
 					if (upResponses && upResponses.responses == newPollData.totalResponders) {
 						gradient(pixels, 0x0000FF, 0xFF0000, 0, config.barPixels)
-						let text = [
-							'Skibidi Rizz!',
-							'Max Gamer!'
-						]
-					let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0x00FF00, 0x000000, config, boardIntervals, ws281x)
+						let display = displayBoard(pixels, 'Max Gamer', 0x00FF00, 0x000000, config, boardIntervals, ws281x)
 						if (!display) return
 						boardIntervals.push(display)
-						player.play('./sfx/sfx_success01.wav')
+
+						playSound({ sfx: 'sfx_success01.wav' });
 
 						specialDisplay = true
-
 						return
 					}
 
 					const wiggleResponse = findResponse('Wiggle')
 					if (wiggleResponse && wiggleResponse.responses == newPollData.totalResponders) {
-						player.play('./sfx/bruh.wav')
+						playSound({ sfx: 'bruh.wav' });
 
 						let text = [
 							'Wiggle Nation: Where democracy meets indecision!',
@@ -109,7 +99,7 @@ function handleClassUpdate() {
 
 						text = text[Math.floor(Math.random() * text.length)]
 
-let display = displayBoard(pixels, text, 0x00FFFF, 0x000000, config, boardIntervals, ws281x)
+						let display = displayBoard(pixels, text, 0x00FFFF, 0x000000, config, boardIntervals, ws281x)
 						if (!display) return
 						boardIntervals.push(display)
 
@@ -118,12 +108,8 @@ let display = displayBoard(pixels, text, 0x00FFFF, 0x000000, config, boardInterv
 
 					const downResponse = findResponse('Down')
 					if (downResponse && downResponse.responses == newPollData.totalResponders) {
-						player.play('./sfx/wompwomp.wav')
-						let text = [
-							'Git Gud',
-							'Skill issue'
-						]
-let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0xFF0000, 0x000000, config, boardIntervals, ws281x)
+						playSound({ sfx: 'wompwomp.wav' });
+						let display = displayBoard(pixels, 'Git Gud', 0xFF0000, 0x000000, config, boardIntervals, ws281x)
 						if (!display) return
 						boardIntervals.push(display)
 
@@ -191,10 +177,10 @@ let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)]
 			if (display) boardIntervals.push(display)
 		}
 
-		let state = require('../state');
 		state.pollData = newPollData
 
 		ws281x.render()
+	}
 	}
 }
 

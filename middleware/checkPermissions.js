@@ -2,18 +2,20 @@
  * Middleware for checking permissions
  */
 
+const logger = require('../utils/logger');
+
 /**
  * Check user permissions
  */
 async function checkPermissions(req, res, next) {
 	try {
-		const { config } = require('../state');
-		const { REQUIRED_PERMISSION, classId } = require('../state');
+		const { config, REQUIRED_PERMISSION, classId } = require('../state');
 		
 		let apiKey = req.headers.api
 
 		if (!req.url) {
 			res.status(400).json({ source: 'Formpix', error: 'Missing URL' })
+			logger.warn('Permission check failed: Missing URL');
 			return
 		}
 
@@ -26,13 +28,15 @@ async function checkPermissions(req, res, next) {
 			urlPath = urlPath.slice(0, urlPath.length - 1)
 		}
 
-		if (urlPath == '' || urlPath == 'socket.io/socket.io.js') {
+		if (urlPath == '' || urlPath == 'socket.io/socket.io.js' || urlPath == '/') {
 			next()
 			return
 		}
 
 		if (!apiKey) {
 			res.status(400).json({ source: 'Formpix', error: 'Missing API key' })
+			logger.warn('Permission check failed: Missing API key', { url: req.url });
+			res.status(400).json({ error: 'Missing API key' })
 			return
 		}
 
@@ -46,6 +50,8 @@ async function checkPermissions(req, res, next) {
 		let data = await response.json();
 		if (data.error) {
 			res.status(response.status).json({ source: 'Formbar', status: data.error })
+			logger.warn('Permission check failed', { error: data.error, url: req.url, apiKey });
+			res.status(response.status).json({ status: data.error })
 			return
 		}
 
