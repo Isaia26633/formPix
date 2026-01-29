@@ -28,7 +28,8 @@ function handleClassUpdate() {
 
 		logger.debug('Class update received', { pollStatus: newPollData.status, pollPrompt: newPollData.prompt });
 
-		if (!newPollData.status) {
+		// Only clear the bar when poll is cleared (by the teacher), not when it's just ended
+		if (!newPollData.status && (!newPollData.responses || Object.keys(newPollData.responses).length === 0)) {
 			fill(pixels, 0x000000, 0, config.barPixels)
 
 			let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
@@ -40,23 +41,25 @@ function handleClassUpdate() {
 			state.pollData = newPollData
 			return
 		}
-
-		const getResponsesArray = () => {
-			if (Array.isArray(newPollData.responses)) {
-				return newPollData.responses
-			} else {
-				return Object.values(newPollData.responses)
+		
+		// Continue processing if poll has responses (whether active or ended)
+		if (newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0)) {
+			const getResponsesArray = () => {
+				if (Array.isArray(newPollData.responses)) {
+					return newPollData.responses
+				} else {
+					return Object.values(newPollData.responses)
+				}
 			}
-		}
 
-		const responsesArray = getResponsesArray()
+			const responsesArray = getResponsesArray()
 
-		for (let poll of Object.values(newPollData.responses)) {
-			pollResponses += poll.responses
-		}
+			for (let poll of Object.values(newPollData.responses)) {
+				pollResponses += poll.responses
+			}
 
-		if (!timerData.active) {
-			fill(pixels, 0x808080, 0, config.barPixels)
+			if (!timerData.active) {
+				fill(pixels, 0x808080, 0, config.barPixels)
 
 			for (let poll of Object.values(newPollData.responses)) {
 				poll.color = parseInt(poll.color.slice(1), 16)
@@ -177,6 +180,7 @@ function handleClassUpdate() {
 		state.pollData = newPollData
 
 		ws281x.render()
+	}
 	}
 }
 
