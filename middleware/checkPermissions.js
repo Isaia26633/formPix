@@ -14,8 +14,8 @@ async function checkPermissions(req, res, next) {
 		let apiKey = req.headers.api
 
 		if (!req.url) {
+			res.status(400).json({ source: 'Formpix', error: 'Missing URL' })
 			logger.warn('Permission check failed: Missing URL');
-			res.status(400).json({ error: 'Missing URL' })
 			return
 		}
 
@@ -34,6 +34,7 @@ async function checkPermissions(req, res, next) {
 		}
 
 		if (!apiKey) {
+			res.status(400).json({ source: 'Formpix', error: 'Missing API key' })
 			logger.warn('Permission check failed: Missing API key', { url: req.url });
 			res.status(400).json({ error: 'Missing API key' })
 			return
@@ -48,19 +49,20 @@ async function checkPermissions(req, res, next) {
 
 		let data = await response.json();
 		if (data.error) {
+			res.status(response.status).json({ source: 'Formbar', status: data.error })
 			logger.warn('Permission check failed', { error: data.error, url: req.url, apiKey });
 			res.status(response.status).json({ status: data.error })
 			return
 		}
 
 		if (response.status !== 200) {
-			res.status(response.status).json({ message: response.statusText, data })
+			res.status(response.status).json({ source: 'Formbar', message: response.statusText, data })
 			return
 		}
 
 		next()
 	} catch (err) {
-		res.status(500).json({ error: 'There was a server error try again' })
+		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
 		return
 	}
 }

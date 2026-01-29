@@ -37,6 +37,166 @@ function percentageController(req, res) {
 	}
 }
 
+/**	
+ * POST /api/progress - Fill a progress bar on the LED strip
+ */
+
+let currentProgressInterval = null;
+
+async function progressController(req, res) {
+	try {
+		const { pixels, config, ws281x } = require('../state');
+		let {
+			bg1,
+			bg2,
+			fg1,
+			fg2,
+			start = 0,
+			length = config.barPixels,
+			startingFill = 0,
+			duration,
+			easing = 'linear',
+			interval = 50
+		} = req.query;
+
+		if (!bg1) {
+			bg1 = '#000000';
+		}
+
+		if (!bg2) {
+			bg2 = bg1;
+		}
+
+		if (!fg1) {
+			fg1 = '#FFFFFF';
+		}
+
+		if (!fg2) {
+			fg2 = fg1;
+		}
+
+		bg1 = textToHexColor(bg1);
+		bg2 = textToHexColor(bg2);
+		fg1 = textToHexColor(fg1);
+		fg2 = textToHexColor(fg2);
+
+		// Validate colors
+		if (typeof bg1 == 'string') {
+			res.status(400).json({ error: bg1 });
+			return;
+		}
+		if (bg1 instanceof Error) throw bg1;
+
+		if (typeof bg2 == 'string') {
+			res.status(400).json({ error: bg2 });
+			return;
+		}
+		if (bg2 instanceof Error) throw bg2;
+
+		if (typeof fg1 == 'string') {
+			res.status(400).json({ error: fg1 });
+			return;
+		}
+		if (fg1 instanceof Error) throw fg1;
+
+		if (typeof fg2 == 'string') {
+			res.status(400).json({ error: fg2 });
+			return;
+		}
+		if (fg2 instanceof Error) throw fg2;
+
+		// Validate numeric parameters
+		start = Number(start);
+		length = Number(length);
+		startingFill = Number(startingFill);
+		interval = Number(interval);
+
+		if (isNaN(start) || !Number.isInteger(start)) {
+			res.status(400).json({ error: 'start must be an integer' });
+			return;
+		}
+		if (isNaN(length) || !Number.isInteger(length)) {
+			res.status(400).json({ error: 'length must be an integer' });
+			return;
+		}
+		if (isNaN(startingFill) || startingFill < 0 || startingFill > 100) {
+			res.status(400).json({ error: 'startingFill must be a number between 0 and 100' });
+			return;
+		}
+
+		// Validate duration if provided
+		if (duration !== undefined) {
+			duration = Number(duration);
+			if (isNaN(duration) || duration <= 0) {
+				res.status(400).json({ error: 'duration must be a positive number' });
+				return;
+			}
+		}
+
+		// Cancel any existing progress animation
+		if (currentProgressInterval) {
+			clearInterval(currentProgressInterval);
+			currentProgressInterval = null;
+		}
+
+		// Clear the bar section before starting animation
+		fill(pixels, 0x000000, start, length);
+		ws281x.render();
+
+		animateProgress(start, length, startingFill, duration, interval, bg1, bg2, fg1, fg2);
+
+		res.status(200).json({ message: 'ok' });
+	} catch (err) {
+		res.status(500).json({ error: 'There was a server error try again' });
+	}
+}
+
+/**
+ * Animate the progress bar from startingFill to 100%
+ */
+function animateProgress(start, length, startingFill, duration, interval, bg1, bg2, fg1, fg2) {
+	const { pixels, ws281x } = require('../state');
+	if (duration === undefined) {
+		// No animation, just fill instantly to 100%
+		gradient(pixels, bg1, bg2, start, length);
+		gradient(pixels, fg1, fg2, start, length);
+		ws281x.render();
+		return;
+	}
+
+	const startTime = Date.now();
+	const startPercent = startingFill;
+	const endPercent = 100;
+
+	currentProgressInterval = setInterval(() => {
+		const elapsed = Date.now() - startTime;
+		const progress = Math.min(elapsed / duration, 1);
+
+		// Apply easing (linear for now, can add more later)
+		const easedProgress = progress;
+
+		// Calculate current fill percentage
+		const currentPercent = startPercent + (endPercent - startPercent) * easedProgress;
+		const fillLength = Math.floor((currentPercent / 100) * length);
+
+		// Draw background gradient
+		gradient(pixels, bg1, bg2, start, length);
+
+		// Draw foreground gradient over the filled portion
+		if (fillLength > 0) {
+			gradient(pixels, fg1, fg2, start, fillLength);
+		}
+
+		ws281x.render();
+
+		// Stop when animation is complete
+		if (progress >= 1) {
+			clearInterval(currentProgressInterval);
+			currentProgressInterval = null;
+		}
+	}, interval);
+}
+
 /**
  * POST /api/fillByPercent - Fill a percentage of the LED strip with a fill color and background color
  */
@@ -295,5 +455,6 @@ module.exports = {
 	fillByPercentController,
 	gradientController,
 	setPixelController,
-	setPixelsController
+	setPixelsController,
+	progressController
 };
