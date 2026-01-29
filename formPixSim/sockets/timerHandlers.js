@@ -2,6 +2,7 @@
  * Socket event handler for timer updates
  */
 
+const logger = require('../utils/logger');
 const { fill } = require('../utils/pixelOps');
 
 /**
@@ -16,6 +17,7 @@ function handleVBTimer() {
 
 		if (!newTimerData.active) {
 			if (state.timerData.active) {
+				logger.info('Timer ended');
 				fill(pixels, 0x000000, 0, config.barPixels)
 				ws281x.render()
 
@@ -25,6 +27,8 @@ function handleVBTimer() {
 			}
 			return
 		}
+
+		logger.debug('Timer update', { timeLeft: newTimerData.timeLeft, startTime: newTimerData.startTime });
 
 		if (newTimerData.timeLeft > 0) {
 			let timeLeftPixels = Math.round(config.barPixels * (newTimerData.timeLeft / newTimerData.startTime))

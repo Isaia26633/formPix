@@ -2,6 +2,7 @@
  * Socket event handler for poll updates
  */
 
+const logger = require('../utils/logger');
 const util = require('util');
 const { fill, gradient } = require('../utils/pixelOps');
 const { displayBoard, getStringColumnLength } = require('../utils/displayUtils');
@@ -12,9 +13,11 @@ const PIXELS_PER_LETTER = 5;
  */
 function handleClassUpdate(webIo) {
 	return (classroomData) => {
+		// console.log('handleClassUpdate called with data:', classroomData);
 		const state = require('../state');
 		const { pixels, config, boardIntervals, ws281x, pollData, timerData } = state;
 		const newPollData = classroomData.poll
+		console.log('Received poll data:', newPollData);
 		let pixelsPerStudent
 		let text = ''
 		let pollText = 'Poll'
@@ -24,19 +27,24 @@ function handleClassUpdate(webIo) {
 
 		if (util.isDeepStrictEqual(newPollData, pollData)) return
 
-		if (!newPollData.status) {
-			fill(pixels, 0x000000, 0, config.barPixels)
+		logger.debug('Class update received', { pollStatus: newPollData.status, pollPrompt: newPollData.prompt });
 
-			let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
-			if (display) {
-				boardIntervals.push(display)
-				ws281x.render()
-			}
+	// Only clear the bar when poll is cleared (no responses), not when it's just ended
+	if (!newPollData.status && (!newPollData.responses || Object.keys(newPollData.responses).length === 0)) {
+		fill(pixels, 0x000000, 0, config.barPixels)
 
-			state.pollData = newPollData
-			return
+		let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
+		if (display) {
+			boardIntervals.push(display)
+			ws281x.render()
 		}
 
+		state.pollData = newPollData
+		return
+	}
+	
+	// Continue processing if poll has responses (whether active or ended)
+	if (newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0)) {
 		const getResponsesArray = () => {
 			if (Array.isArray(newPollData.responses)) {
 				return newPollData.responses
@@ -191,6 +199,7 @@ function handleClassUpdate(webIo) {
 		state.pollData = newPollData
 
 		ws281x.render()
+	}
 	}
 }
 
