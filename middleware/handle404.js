@@ -15,9 +15,9 @@ function handle404(req, res, next) {
 			urlPath = urlPath.slice(0, urlPath.indexOf('?'))
 		}
 
-		res.status(404).json({ error: `The endpoint ${urlPath} does not exist` })
+		res.status(404).json({ source: 'Formpix', error: `The endpoint ${urlPath} does not exist` })
 	} catch (err) {
-		res.status(500).json({ error: 'There was a server error try again' })
+		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
 	}
 }
 

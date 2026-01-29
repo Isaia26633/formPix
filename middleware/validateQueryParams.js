@@ -10,7 +10,7 @@ function validateQueryParams(req, res, next) {
 
 	for (let key in query) {
 		if (Array.isArray(query[key])) {
-			res.status(400).json({ error: `You can only have one ${key} parameter` })
+			res.status(400).json({ source: 'Formpix', error: `You can only have one ${key} parameter` })
 			return
 		}
 	}

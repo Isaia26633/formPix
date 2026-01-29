@@ -17,12 +17,12 @@ function percentageController(req, res) {
 		color = textToHexColor(color)
 		percent = Number(percent)
 		if (typeof color == 'string') {
-			res.status(400).json({ error: color })
+			res.status(400).json({ source: 'Formpix', error: color })
 			return
 		}
 		if (color instanceof Error) throw color
 		if (isNaN(percent) || percent < 0 || percent > 100) {
-			res.status(400).json({ error: 'percent must be a number between 0 and 100' })
+			res.status(400).json({ source: 'Formpix', error: 'percent must be a number between 0 and 100' })
 			return
 		}
 		let length = Math.floor((percent / 100) * pixels.length)
@@ -30,7 +30,7 @@ function percentageController(req, res) {
 		ws281x.render()
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
-		res.status(500).json({ error: 'There was a server error try again' })
+		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
 	}
 }
 
@@ -48,13 +48,13 @@ async function fillByPercentController(req, res) {
 
 		// Validate fill colors
 		if (typeof fillColor == 'string') {
-			res.status(400).json({ error: fillColor });
+			res.status(400).json({ source: 'Formpix', error: fillColor });
 			return;
 		}
 		if (fillColor instanceof Error) throw fillColor;
 
 		if (typeof bgColor == 'string') {
-			res.status(400).json({ error: bgColor });
+			res.status(400).json({ source: 'Formpix', error: bgColor });
 			return;
 		}
 		if (bgColor instanceof Error) throw bgColor;
@@ -62,14 +62,14 @@ async function fillByPercentController(req, res) {
 		// Validate percent
 		percent = Number(percent);
 		if (isNaN(percent) || percent < 0 || percent > 100) {
-			res.status(400).json({ error: 'percent must be a number between 0 and 100' });
+			res.status(400).json({ source: 'Formpix', error: 'percent must be a number between 0 and 100' });
 			return;
 		}
 
 		// Validate length
 		length = Number(length);
 		if (isNaN(length) || !Number.isInteger(length)) {
-			res.status(400).json({ error: 'length must be an integer' });
+			res.status(400).json({ source: 'Formpix', error: 'length must be an integer' });
 			return;
 		}
 
@@ -92,7 +92,7 @@ async function fillByPercentController(req, res) {
 		ws281x.render();
 		res.status(200).json({ message: 'ok' });
 	} catch (err) {
-		res.status(500).json({ error: 'There was a server error try again' });
+		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' });
 	}
 }
 
@@ -108,17 +108,17 @@ async function fillController(req, res) {
 		color = textToHexColor(color)
 
 		if (typeof color == 'string') {
-			res.status(400).json({ error: color })
+			res.status(400).json({ source: 'Formpix', error: color })
 			return
 		}
 		if (color instanceof Error) throw color
 
 		if (isNaN(start) || !Number.isInteger(Number(start))) {
-			res.status(400).json({ error: 'start must be an integer' })
+			res.status(400).json({ source: 'Formpix', error: 'start must be an integer' })
 			return
 		}
 		if (isNaN(length) || !Number.isInteger(Number(length))) {
-			res.status(400).json({ error: 'length must be an integer' })
+			res.status(400).json({ source: 'Formpix', error: 'length must be an integer' })
 			return
 		}
 
@@ -129,7 +129,7 @@ async function fillController(req, res) {
 		ws281x.render()
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
-		res.status(500).json({ error: 'There was a server error try again' })
+		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
 	}
 }
 
@@ -143,18 +143,18 @@ async function gradientController(req, res) {
 		let { startColor, endColor, start = 0, length = pixels.length } = req.query
 
 		if (!startColor) {
-			res.status(400).json({ error: 'missing startColor' })
+			res.status(400).json({ source: 'Formpix', error: 'missing startColor' })
 			return
 		}
 		if (!endColor) {
-			res.status(400).json({ error: 'missing endColor' })
+			res.status(400).json({ source: 'Formpix', error: 'missing endColor' })
 			return
 		}
 
 		startColor = textToHexColor(startColor)
 
 		if (typeof startColor == 'string') {
-			res.status(400).json({ error: startColor })
+			res.status(400).json({ source: 'Formpix', error: startColor })
 			return
 		}
 		if (startColor instanceof Error) throw startColor
@@ -162,17 +162,17 @@ async function gradientController(req, res) {
 		endColor = textToHexColor(endColor)
 
 		if (typeof endColor == 'string') {
-			res.status(400).json({ error: endColor })
+			res.status(400).json({ source: 'Formpix', error: endColor })
 			return
 		}
 		if (endColor instanceof Error) throw endColor
 
 		if (isNaN(start) || !Number.isInteger(Number(start))) {
-			res.status(400).json({ error: 'start must be an integer' })
+			res.status(400).json({ source: 'Formpix', error: 'start must be an integer' })
 			return
 		}
 		if (isNaN(length) || !Number.isInteger(Number(length))) {
-			res.status(400).json({ error: 'length must be an integer' })
+			res.status(400).json({ source: 'Formpix', error: 'length must be an integer' })
 			return
 		}
 
@@ -183,7 +183,7 @@ async function gradientController(req, res) {
 		ws281x.render()
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
-		res.status(500).json({ error: 'There was a server error try again' })
+		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
 	}
 }
 
@@ -199,7 +199,7 @@ async function setPixelController(req, res) {
 		color = textToHexColor(color)
 
 		if (typeof color == 'string') {
-			res.status(400).json({ error: color })
+			res.status(400).json({ source: 'Formpix', error: color })
 			return
 		}
 		if (color instanceof Error) throw color
@@ -207,7 +207,7 @@ async function setPixelController(req, res) {
 		let pixelNumber = getPixelNumber(pixel, config.barPixels, config.boards)
 
 		if (typeof pixelNumber == 'string') {
-			res.status(400).json({ error: pixelNumber })
+			res.status(400).json({ source: 'Formpix', error: pixelNumber })
 			return
 		}
 		if (pixelNumber instanceof Error) throw pixelNumber
@@ -218,7 +218,7 @@ async function setPixelController(req, res) {
 
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
-		res.status(500).json({ error: 'There was a server error try again' })
+		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
 	}
 }
 
@@ -234,14 +234,14 @@ async function setPixelsController(req, res) {
 		let tempPixels = structuredClone(pixels)
 
 		if (!inputPixels) {
-			res.status(400).json({ error: 'You did not provide any pixels' })
+			res.status(400).json({ source: 'Formpix', error: 'You did not provide any pixels' })
 			return
 		}
 
 		inputPixels = safeJsonParse(inputPixels)
 
 		if (typeof inputPixels == 'string') {
-			res.status(400).json({ error: inputPixels })
+			res.status(400).json({ source: 'Formpix', error: inputPixels })
 			return
 		}
 		if (inputPixels instanceof Error) throw inputPixels
@@ -251,7 +251,7 @@ async function setPixelsController(req, res) {
 			let pixelNumber
 
 			if (typeof color == 'string') {
-				res.status(400).json({ error: color })
+				res.status(400).json({ source: 'Formpix', error: color })
 				return
 			}
 			if (color instanceof Error) throw color
@@ -259,7 +259,7 @@ async function setPixelsController(req, res) {
 			pixelNumber = getPixelNumber(inputPixel.pixelNumber, config.barPixels, config.boards)
 
 			if (typeof pixelNumber == 'string') {
-				res.status(400).json({ error: pixelNumber })
+				res.status(400).json({ source: 'Formpix', error: pixelNumber })
 				return
 			}
 			if (pixelNumber instanceof Error) throw pixelNumber
@@ -274,7 +274,7 @@ async function setPixelsController(req, res) {
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
 		// console.log(err);
-		res.status(500).json({ error: 'There was a server error try again' })
+		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
 	}
 }
 

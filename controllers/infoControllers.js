@@ -19,7 +19,7 @@ async function getInfoController(req, res) {
 			stripType: config.stripType
 		});
 	} catch (err) {
-		res.status(500).json({ error: 'There was a server error try again' });
+		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' });
 	}
 }
 

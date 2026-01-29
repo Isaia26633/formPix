@@ -9,7 +9,7 @@ function checkConnection(req, res, next) {
 	const { connected } = require('../state');
 	
 	if (!connected) {
-		res.json({ error: 'This formPix is not connected to a formBar' })
+		res.json({ source: 'Formpix', error: 'This formPix is not connected to a formBar' })
 		return
 	}
 
