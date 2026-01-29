@@ -2,6 +2,8 @@
  * Middleware for checking permissions
  */
 
+const logger = require('../utils/logger');
+
 /**
  * Check user permissions
  */
@@ -12,6 +14,7 @@ async function checkPermissions(req, res, next) {
 		let apiKey = req.headers.api
 
 		if (!req.url) {
+			logger.warn('Permission check failed: Missing URL');
 			res.status(400).json({ error: 'Missing URL' })
 			return
 		}
@@ -31,6 +34,7 @@ async function checkPermissions(req, res, next) {
 		}
 
 		if (!apiKey) {
+			logger.warn('Permission check failed: Missing API key', { url: req.url });
 			res.status(400).json({ error: 'Missing API key' })
 			return
 		}
@@ -44,6 +48,7 @@ async function checkPermissions(req, res, next) {
 
 		let data = await response.json();
 		if (data.error) {
+			logger.warn('Permission check failed', { error: data.error, url: req.url, apiKey });
 			res.status(response.status).json({ status: data.error })
 			return
 		}
