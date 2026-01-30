@@ -22,7 +22,7 @@ async function getInfoController(req, res) {
 		});
 	} catch (err) {
 		logger.error('Error in getInfoController', { error: err.message, stack: err.stack });
-		res.status(500).json({ error: 'There was a server error try again' });
+		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' });
 	}
 }
 

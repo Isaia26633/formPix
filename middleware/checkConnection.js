@@ -12,7 +12,7 @@ function checkConnection(req, res, next) {
 	
 	if (!connected) {
 		logger.warn('API request blocked: Not connected to formBar', { url: req.url });
-		res.json({ error: 'This formPix is not connected to a formBar' })
+		res.json({ source: 'Formpix', error: 'This formPix is not connected to a formBar' })
 		return
 	}
 

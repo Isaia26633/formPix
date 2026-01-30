@@ -16,7 +16,7 @@ async function sayController(req, res) {
 		let { text, textColor, backgroundColor, scroll } = req.query
 
 		if (!text) {
-			res.status(400).json({ error: 'You did not provide any text' })
+			res.status(400).json({ source: 'Formpix', error: 'You did not provide any text' })
 			return
 		}
 		if (!textColor) {
@@ -30,12 +30,12 @@ async function sayController(req, res) {
 		backgroundColor = textToHexColor(backgroundColor)
 
 		if (typeof textColor == 'string') {
-			res.status(400).json({ error: textColor })
+			res.status(400).json({ source: 'Formpix', error: textColor })
 			return
 		}
 		if (textColor instanceof Error) throw textColor
 		if (typeof backgroundColor == 'string') {
-			res.status(400).json({ error: backgroundColor })
+			res.status(400).json({ source: 'Formpix', error: backgroundColor })
 			return
 		}
 		if (backgroundColor instanceof Error) throw backgroundColor
@@ -43,7 +43,7 @@ async function sayController(req, res) {
 		let display = displayBoard(pixels, text, textColor, backgroundColor, config, boardIntervals, ws281x, 0, null, scroll ? parseInt(scroll) : 100)
 		
 		if (!display) {
-			res.status(500).json({ error: 'There was a server error try again' })
+			res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
 			return
 		}
 		boardIntervals.push(display)
@@ -51,7 +51,7 @@ async function sayController(req, res) {
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
 		console.error('Error in sayController:', err);
-		res.status(500).json({ error: 'There was a server error try again' })
+		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
 	}
 }
 
