@@ -273,7 +273,6 @@ async function setPixelsController(req, res) {
 
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
-		// console.log(err);
 		res.status(500).json({ error: 'There was a server error try again' })
 	}
 }
