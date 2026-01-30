@@ -2,12 +2,15 @@
  * Socket event handlers for sound events
  */
 
+const logger = require('../utils/logger');
+
 /**
  * Create player-like object that emits to web clients
  */
 function createSimPlayer(webIo) {
 	return {
 		play: async (string, options) => {
+			logger.debug('Playing sound via socket', { sound: string });
 			let sockets = await webIo.fetchSockets()
 			for (let socket of sockets) {
 				socket.emit('play', string)
