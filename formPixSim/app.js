@@ -23,16 +23,16 @@ const infoRoutes = require('./routes/infoRoutes');
 
 // Import socket handlers
 const { handleConnectError, handleConnect, handleSetClass, handleRequestClassUpdate } = require('./sockets/connectionHandlers');
-const { 
-	handleHelpSound, 
-	handleBreakSound, 
-	handlePollSound, 
-	handleRemovePollSound, 
-	handleJoinSound, 
-	handleLeaveSound, 
-	handleKickStudentsSound, 
-	handleEndClassSound, 
-	handleTimerSound 
+const {
+	handleHelpSound,
+	handleBreakSound,
+	handlePollSound,
+	handleRemovePollSound,
+	handleJoinSound,
+	handleLeaveSound,
+	handleKickStudentsSound,
+	handleEndClassSound,
+	handleTimerSound
 } = require('./sockets/soundHandlers');
 const { handleClassUpdate } = require('./sockets/pollHandlers');
 const { handleVBTimer } = require('./sockets/timerHandlers');
@@ -50,6 +50,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/static'));
 app.use('/bgm', express.static(__dirname + '/bgm'));
 app.use('/sfx', express.static(__dirname + '/sfx'));
+
 
 // Set EJS as view engine
 app.set('view engine', 'ejs');
