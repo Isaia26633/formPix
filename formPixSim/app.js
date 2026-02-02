@@ -91,7 +91,7 @@ app.use(handle404);
 // ============================================================================
 
 webIo.on('connection', (socket) => {
-	// console.log('Browser client connected');
+	console.log('Browser client connected');
 });
 
 // ============================================================================
@@ -99,9 +99,6 @@ webIo.on('connection', (socket) => {
 // ============================================================================
 
 const socket = state.socket;
-
-console.log('Setting up FormBar socket listeners...');
-console.log('Connecting to FormBar URL:', state.config.formbarUrl);
 
 // Connection events
 socket.on('connect_error', handleConnectError(socket, state.boardIntervals));
@@ -121,19 +118,13 @@ socket.on('endClassSound', handleEndClassSound(webIo));
 socket.on('timerSound', handleTimerSound(webIo));
 
 // Poll and timer events
-socket.on('classUpdate', (data) => {
-	// console.log('Received classUpdate event:', data);
-	handleClassUpdate(webIo)(data);
-});
-socket.on('vbTimer', (data) => {
-	// console.log('Received vbTimer event:', data);
-	handleVBTimer()(data);
-});
+socket.on('classUpdate', handleClassUpdate(webIo));
+socket.on('vbTimer', handleVBTimer());
 
 // ============================================================================
 // SERVER START
 // ============================================================================
 
-httpServer.listen(state.config.port, '0.0.0.0', async () => {
+httpServer.listen(state.config.port, async () => {
 	console.log(`Server running on port: ${state.config.port}`);
 });
