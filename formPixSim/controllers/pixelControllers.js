@@ -829,7 +829,7 @@ async function setPixelsController(req, res) {
 			res.status(400).json({ error: 'You did not provide any pixels' })
 			return
 		}
-
+		
 		inputPixels = safeJsonParse(inputPixels)
 
 		if (typeof inputPixels == 'string') {
