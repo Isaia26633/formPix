@@ -207,17 +207,7 @@ async function raveController(req, res) {
 				if (modeChangeCounter >= modeRotationSpeed) {
 					modeChangeCounter = 0;
 					const modes = ['rainbow', 'strobe', 'pulse', 'chase'];
-					const oldMode = currentCrazyMode;
 					currentCrazyMode = modes[Math.floor(Math.random() * modes.length)];
-					
-					// Announce mode change via say API
-					if (currentCrazyMode !== oldMode) {
-						const axios = require('axios');
-						const colors = ['red', 'blue', 'green', 'purple', 'orange', 'pink', 'yellow'];
-						const randomColor = colors[Math.floor(Math.random() * colors.length)];
-						axios.post(`http://localhost:${config.port || 3000}/api/say?text=rave mode changing colors&textColor=${randomColor}&scroll=80`)
-							.catch(() => {}); // Silently fail if say doesn't work
-					}
 				}
 				
 				const midPoint = Math.floor(barLength / 2);
