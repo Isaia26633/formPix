@@ -2,6 +2,7 @@
  * Controllers for LED pixel routes
  */
 
+const logger = require('../utils/logger');
 const { textToHexColor } = require('../utils/colorUtils');
 const { fill, gradient } = require('../utils/pixelOps');
 const { getPixelNumber } = require('../utils/pixelUtils');
@@ -28,8 +29,10 @@ function percentageController(req, res) {
 		let length = Math.floor((percent / 100) * pixels.length)
 		fill(pixels, color, 0, length)
 		ws281x.render()
+		logger.info('Percentage fill completed', { percent, color: color.toString(16), length });
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
+		logger.error('Error in percentageController', { error: err.message, stack: err.stack, query: req.query });
 		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
 	}
 }
@@ -39,6 +42,224 @@ function percentageController(req, res) {
  */
 
 let currentProgressInterval = null;
+let currentRaveInterval = null;
+
+/**
+ * POST /api/rave - Create rave visuals on the bar with flashing rainbow colors
+ */
+async function raveController(req, res) {
+	try {
+		const { pixels, config, ws281x } = require('../state');
+		let {
+			speed = 50,
+			mode = 'rainbow',
+			intensity = 100
+		} = req.query;
+
+		speed = Number(speed);
+		intensity = Number(intensity);
+
+		// Validate parameters
+		if (isNaN(speed) || speed <= 0) {
+			res.status(400).json({ source: 'Formpix', error: 'speed must be a positive number' });
+			return;
+		}
+
+		if (isNaN(intensity) || intensity < 0 || intensity > 100) {
+			res.status(400).json({ source: 'Formpix', error: 'intensity must be a number between 0 and 100' });
+			return;
+		}
+
+		// Cancel any existing rave animation
+		if (currentRaveInterval) {
+			clearInterval(currentRaveInterval);
+			currentRaveInterval = null;
+		}
+
+		// Cancel any existing progress animation
+		if (currentProgressInterval) {
+			clearInterval(currentProgressInterval);
+			currentProgressInterval = null;
+		}
+
+		const barLength = config.barPixels;
+		let offset = 0;
+		const intensityMultiplier = intensity / 100;
+		
+		// Chase mode needs persistent chaser positions and directions
+		const chasers = [
+			{ pos: 0, speed: 2.5, size: 10, hueOffset: 0, dir: 1 },       // Fast red
+			{ pos: 15, speed: 1.8, size: 12, hueOffset: 120, dir: 1 },    // Green
+			{ pos: 30, speed: 3.2, size: 8, hueOffset: 240, dir: 1 },     // Super fast blue
+			{ pos: 45, speed: 1.2, size: 15, hueOffset: 60, dir: -1 },    // Yellow going backwards
+			{ pos: 60, speed: 2.8, size: 9, hueOffset: 180, dir: -1 },    // Cyan backwards
+			{ pos: 75, speed: 2.0, size: 11, hueOffset: 300, dir: 1 },    // Magenta
+			{ pos: 90, speed: 3.5, size: 7, hueOffset: 30, dir: -1 },     // Orange backwards
+			{ pos: 105, speed: 1.5, size: 14, hueOffset: 200, dir: 1 }    // Teal
+		];
+
+		currentRaveInterval = setInterval(() => {
+			if (mode === 'rainbow') {
+				// Rainbow wave effect
+				for (let i = 0; i < barLength; i++) {
+					const hue = (((i + offset) % barLength) / barLength) * 360;
+					const rgb = hsvToRgb(hue, 1, intensityMultiplier);
+					pixels[i] = (rgb.r << 16) | (rgb.g << 8) | rgb.b;
+				}
+			} else if (mode === 'strobe') {
+				// Strobe effect with random colors
+				const hue = Math.random() * 360;
+				const rgb = hsvToRgb(hue, 1, intensityMultiplier);
+				const color = (rgb.r << 16) | (rgb.g << 8) | rgb.b;
+				fill(pixels, color, 0, barLength);
+			} else if (mode === 'pulse') {
+				// Pulsing rainbow effect
+				const pulse = (Math.sin(offset / 10) + 1) / 2;
+				for (let i = 0; i < barLength; i++) {
+					const hue = ((i / barLength) * 360 + offset * 5) % 360;
+					const rgb = hsvToRgb(hue, 1, pulse * intensityMultiplier);
+					pixels[i] = (rgb.r << 16) | (rgb.g << 8) | rgb.b;
+				}
+			} else if (mode === 'chase') {
+				// ABSOLUTE CHAOS - bouncing chasers with STROBING BACKGROUND
+				
+				// FULL STROBE BACKGROUND - changes every frame
+				const bgHue = Math.random() * 360;
+				const bgRgb = hsvToRgb(bgHue, 0.8, intensityMultiplier * 0.4);
+				const bgColor = (bgRgb.r << 16) | (bgRgb.g << 8) | bgRgb.b;
+				fill(pixels, bgColor, 0, barLength);
+				
+				// Additional random strobe sections (40% chance each frame)
+				if (Math.random() < 0.4) {
+					const strobePos = Math.floor(Math.random() * barLength);
+					const strobeHue = Math.random() * 360;
+					const strobeRgb = hsvToRgb(strobeHue, 1, intensityMultiplier);
+					const strobeColor = (strobeRgb.r << 16) | (strobeRgb.g << 8) | strobeRgb.b;
+					for (let i = 0; i < 8; i++) {
+						const pos = (strobePos + i) % barLength;
+						pixels[pos] = strobeColor;
+					}
+				}
+				
+				// Random sparkles (40% chance)
+				if (Math.random() < 0.4) {
+					const sparklePos = Math.floor(Math.random() * barLength);
+					const sparkleRgb = hsvToRgb(Math.random() * 360, 1, intensityMultiplier);
+					pixels[sparklePos] = (sparkleRgb.r << 16) | (sparkleRgb.g << 8) | sparkleRgb.b;
+				}
+				
+				// Update and draw all bouncing chasers
+				for (let chaser of chasers) {
+					// Update position
+					chaser.pos += chaser.speed * chaser.dir;
+					
+					// Bounce at edges with explosion effect
+					if (chaser.pos <= 0 || chaser.pos >= barLength - chaser.size) {
+						chaser.dir *= -1;
+						// Explosion at bounce
+						for (let i = 0; i < 20; i++) {
+							const explosionPos = Math.floor(chaser.pos + (Math.random() - 0.5) * 15);
+							if (explosionPos >= 0 && explosionPos < barLength) {
+								const explosionHue = (chaser.hueOffset + Math.random() * 60) % 360;
+								const explosionRgb = hsvToRgb(explosionHue, 1, intensityMultiplier);
+								pixels[explosionPos] = (explosionRgb.r << 16) | (explosionRgb.g << 8) | explosionRgb.b;
+							}
+						}
+					}
+					
+					// Clamp position
+					chaser.pos = Math.max(0, Math.min(barLength - chaser.size, chaser.pos));
+					
+					const baseHue = ((offset * 15 + chaser.hueOffset) % 360);
+					
+					// Draw chaser with intense fading trail
+					for (let i = 0; i < chaser.size; i++) {
+						const pixelPos = Math.floor(chaser.pos + i);
+						if (pixelPos >= 0 && pixelPos < barLength) {
+							const trailFade = 1 - (i / chaser.size);
+							const hue = (baseHue + i * 8) % 360;
+							const rgb = hsvToRgb(hue, 1, trailFade * intensityMultiplier);
+							
+							// Additive blending for insane color mixing
+							const existingR = (pixels[pixelPos] >> 16) & 0xff;
+							const existingG = (pixels[pixelPos] >> 8) & 0xff;
+							const existingB = pixels[pixelPos] & 0xff;
+							
+							const newR = Math.min(255, existingR + rgb.r);
+							const newG = Math.min(255, existingG + rgb.g);
+							const newB = Math.min(255, existingB + rgb.b);
+							
+							pixels[pixelPos] = (newR << 16) | (newG << 8) | newB;
+						}
+					}
+				}
+			}
+
+			offset++;
+			ws281x.render();
+		}, speed);
+
+		logger.info('Rave mode started', { speed, mode, intensity });
+		res.status(200).json({ message: 'ok', mode: 'rave started' });
+	} catch (err) {
+		logger.error('Error in raveController', { error: err.message, stack: err.stack, query: req.query });
+		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' });
+	}
+}
+
+/**
+ * POST /api/rave/stop - Stop the rave visuals
+ */
+async function raveStopController(req, res) {
+	try {
+		if (currentRaveInterval) {
+			clearInterval(currentRaveInterval);
+			currentRaveInterval = null;
+			logger.info('Rave mode stopped');
+			res.status(200).json({ message: 'ok', mode: 'rave stopped' });
+		} else {
+			res.status(200).json({ message: 'no active rave animation' });
+		}
+	} catch (err) {
+		logger.error('Error in raveStopController', { error: err.message, stack: err.stack });
+		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' });
+	}
+}
+
+/**
+ * Convert HSV to RGB
+ * @param {number} h - Hue (0-360)
+ * @param {number} s - Saturation (0-1)
+ * @param {number} v - Value (0-1)
+ * @returns {{r: number, g: number, b: number}} RGB object
+ */
+function hsvToRgb(h, s, v) {
+	const c = v * s;
+	const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+	const m = v - c;
+	
+	let r = 0, g = 0, b = 0;
+	
+	if (h >= 0 && h < 60) {
+		r = c; g = x; b = 0;
+	} else if (h >= 60 && h < 120) {
+		r = x; g = c; b = 0;
+	} else if (h >= 120 && h < 180) {
+		r = 0; g = c; b = x;
+	} else if (h >= 180 && h < 240) {
+		r = 0; g = x; b = c;
+	} else if (h >= 240 && h < 300) {
+		r = x; g = 0; b = c;
+	} else if (h >= 300 && h < 360) {
+		r = c; g = 0; b = x;
+	}
+	
+	return {
+		r: Math.round((r + m) * 255),
+		g: Math.round((g + m) * 255),
+		b: Math.round((g + m) * 255)
+	};
+}
 
 async function progressController(req, res) {
 	try {
@@ -250,8 +471,10 @@ async function fillByPercentController(req, res) {
 		fill(pixels, fillColor, startPos, fillLength);
 
 		ws281x.render();
+		logger.info('Fill by percent completed', { percent, fillColor: fillColor.toString(16), bgColor: bgColor.toString(16), length });
 		res.status(200).json({ message: 'ok' });
 	} catch (err) {
+		logger.error('Error in fillByPercentController', { error: err.message, stack: err.stack, query: req.query });
 		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' });
 	}
 }
@@ -287,8 +510,10 @@ async function fillController(req, res) {
 
 		fill(pixels, color, start, length)
 		ws281x.render()
+		logger.info('Fill completed', { color: color.toString(16), start, length });
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
+		logger.error('Error in fillController', { error: err.message, stack: err.stack, query: req.query });
 		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
 	}
 }
@@ -341,8 +566,10 @@ async function gradientController(req, res) {
 
 		gradient(pixels, startColor, endColor, start, length)
 		ws281x.render()
+		logger.info('Gradient completed', { startColor: startColor.toString(16), endColor: endColor.toString(16), start, length });
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
+		logger.error('Error in gradientController', { error: err.message, stack: err.stack, query: req.query });
 		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
 	}
 }
@@ -376,8 +603,10 @@ async function setPixelController(req, res) {
 
 		ws281x.render()
 
+		logger.info('Set pixel completed', { pixel, pixelNumber, color: color.toString(16) });
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
+		logger.error('Error in setPixelController', { error: err.message, stack: err.stack, query: req.query });
 		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
 	}
 }
@@ -431,8 +660,10 @@ async function setPixelsController(req, res) {
 
 		ws281x.render()
 
+		logger.info('Set pixels completed', { count: inputPixels.length });
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
+		logger.error('Error in setPixelsController', { error: err.message, stack: err.stack, query: req.query });
 		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
 	}
 }
@@ -443,5 +674,7 @@ module.exports = {
 	gradientController,
 	setPixelController,
 	setPixelsController,
-	progressController
+	progressController,
+	raveController,
+	raveStopController
 };
