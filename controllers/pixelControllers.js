@@ -97,6 +97,12 @@ async function raveController(req, res) {
 			{ pos: 90, speed: 3.5, size: 7, hueOffset: 30, dir: -1 },     // Orange backwards
 			{ pos: 105, speed: 1.5, size: 14, hueOffset: 200, dir: 1 }    // Teal
 		];
+		
+		// Crazy mode tracking
+		let currentCrazyMode = 'rainbow';
+		let modeChangeCounter = 0;
+		const modeRotationSpeed = 30; // Change mode every 30 frames (FASTER!)
+		let glitchCounter = 0;
 
 		currentRaveInterval = setInterval(() => {
 			if (mode === 'rainbow') {
@@ -191,6 +197,213 @@ async function raveController(req, res) {
 							
 							pixels[pixelPos] = (newR << 16) | (newG << 8) | newB;
 						}
+					}
+				}
+			} else if (mode === 'crazy') {
+				// CRAZY MODE - ALL EFFECTS AT ONCE WITH ROTATING MODES
+				
+				// Rotate through modes every N frames
+				modeChangeCounter++;
+				if (modeChangeCounter >= modeRotationSpeed) {
+					modeChangeCounter = 0;
+					const modes = ['rainbow', 'strobe', 'pulse', 'chase'];
+					const oldMode = currentCrazyMode;
+					currentCrazyMode = modes[Math.floor(Math.random() * modes.length)];
+					
+					// Announce mode change via say API
+					if (currentCrazyMode !== oldMode) {
+						const axios = require('axios');
+						const colors = ['red', 'blue', 'green', 'purple', 'orange', 'pink', 'yellow'];
+						const randomColor = colors[Math.floor(Math.random() * colors.length)];
+						axios.post(`http://localhost:${config.port || 3000}/api/say?text=rave mode changing colors&textColor=${randomColor}&scroll=80`)
+							.catch(() => {}); // Silently fail if say doesn't work
+					}
+				}
+				
+				const midPoint = Math.floor(barLength / 2);
+				
+				// Split bar into two halves with different effects
+				if (currentCrazyMode === 'rainbow') {
+					// Left half: forward rainbow
+					for (let i = 0; i < midPoint; i++) {
+						const hue = (((i + offset) % midPoint) / midPoint) * 360;
+						const rgb = hsvToRgb(hue, 1, intensityMultiplier);
+						pixels[i] = (rgb.r << 16) | (rgb.g << 8) | rgb.b;
+					}
+					// Right half: reverse rainbow
+					for (let i = midPoint; i < barLength; i++) {
+						const hue = (((midPoint - (i - midPoint) + offset) % midPoint) / midPoint) * 360;
+						const rgb = hsvToRgb(hue, 1, intensityMultiplier);
+						pixels[i] = (rgb.r << 16) | (rgb.g << 8) | rgb.b;
+					}
+				} else if (currentCrazyMode === 'strobe') {
+					// Split strobe - different colors on each half
+					const hue1 = Math.random() * 360;
+					const hue2 = (hue1 + 180) % 360; // Complementary color
+					const rgb1 = hsvToRgb(hue1, 1, intensityMultiplier);
+					const rgb2 = hsvToRgb(hue2, 1, intensityMultiplier);
+					const color1 = (rgb1.r << 16) | (rgb1.g << 8) | rgb1.b;
+					const color2 = (rgb2.r << 16) | (rgb2.g << 8) | rgb2.b;
+					fill(pixels, color1, 0, midPoint);
+					fill(pixels, color2, midPoint, barLength - midPoint);
+				} else if (currentCrazyMode === 'pulse') {
+					// Opposing pulse waves
+					const pulse1 = (Math.sin(offset / 10) + 1) / 2;
+					const pulse2 = (Math.cos(offset / 10) + 1) / 2;
+					for (let i = 0; i < midPoint; i++) {
+						const hue = ((i / midPoint) * 360 + offset * 5) % 360;
+						const rgb = hsvToRgb(hue, 1, pulse1 * intensityMultiplier);
+						pixels[i] = (rgb.r << 16) | (rgb.g << 8) | rgb.b;
+					}
+					for (let i = midPoint; i < barLength; i++) {
+						const hue = (((i - midPoint) / (barLength - midPoint)) * 360 - offset * 5) % 360;
+						const rgb = hsvToRgb(hue, 1, pulse2 * intensityMultiplier);
+						pixels[i] = (rgb.r << 16) | (rgb.g << 8) | rgb.b;
+					}
+				} else if (currentCrazyMode === 'chase') {
+					// Crazy chase with split zones
+					const bgHue = Math.random() * 360;
+					const bgRgb = hsvToRgb(bgHue, 0.8, intensityMultiplier * 0.3);
+					const bgColor = (bgRgb.r << 16) | (bgRgb.g << 8) | bgRgb.b;
+					fill(pixels, bgColor, 0, barLength);
+					
+					for (let chaser of chasers) {
+						chaser.pos += chaser.speed * chaser.dir;
+						
+						if (chaser.pos <= 0 || chaser.pos >= barLength - chaser.size) {
+							chaser.dir *= -1;
+							// Mini explosion
+							for (let i = 0; i < 10; i++) {
+								const explosionPos = Math.floor(chaser.pos + (Math.random() - 0.5) * 10);
+								if (explosionPos >= 0 && explosionPos < barLength) {
+									const explosionHue = Math.random() * 360;
+									const explosionRgb = hsvToRgb(explosionHue, 1, intensityMultiplier);
+									pixels[explosionPos] = (explosionRgb.r << 16) | (explosionRgb.g << 8) | explosionRgb.b;
+								}
+							}
+						}
+						
+						chaser.pos = Math.max(0, Math.min(barLength - chaser.size, chaser.pos));
+						const baseHue = ((offset * 20 + chaser.hueOffset) % 360);
+						
+						for (let i = 0; i < chaser.size; i++) {
+							const pixelPos = Math.floor(chaser.pos + i);
+							if (pixelPos >= 0 && pixelPos < barLength) {
+								const trailFade = 1 - (i / chaser.size);
+								const hue = (baseHue + i * 10) % 360;
+								const rgb = hsvToRgb(hue, 1, trailFade * intensityMultiplier);
+								
+								const existingR = (pixels[pixelPos] >> 16) & 0xff;
+								const existingG = (pixels[pixelPos] >> 8) & 0xff;
+								const existingB = pixels[pixelPos] & 0xff;
+								
+								const newR = Math.min(255, existingR + rgb.r);
+								const newG = Math.min(255, existingG + rgb.g);
+								const newB = Math.min(255, existingB + rgb.b);
+								
+								pixels[pixelPos] = (newR << 16) | (newG << 8) | newB;
+							}
+						}
+					}
+				}
+				
+				// MAXIMUM CHAOS - Add TONS of random elements every frame
+				
+				// Random full-screen glitch (10% chance)
+				glitchCounter++;
+				if (Math.random() < 0.1 || glitchCounter % 7 === 0) {
+					const glitchLength = Math.floor(Math.random() * 20) + 5;
+					const glitchPos = Math.floor(Math.random() * (barLength - glitchLength));
+					const glitchHue = Math.random() * 360;
+					const glitchRgb = hsvToRgb(glitchHue, 1, intensityMultiplier);
+					fill(pixels, (glitchRgb.r << 16) | (glitchRgb.g << 8) | glitchRgb.b, glitchPos, glitchLength);
+				}
+				
+				// Random strobe sections (50% chance) - INCREASED
+				if (Math.random() < 0.5) {
+					const strobePos = Math.floor(Math.random() * barLength);
+					const strobeLength = Math.floor(Math.random() * 15) + 5;
+					const strobeHue = Math.random() * 360;
+					const strobeRgb = hsvToRgb(strobeHue, 1, intensityMultiplier);
+					const strobeColor = (strobeRgb.r << 16) | (strobeRgb.g << 8) | strobeRgb.b;
+					for (let i = 0; i < strobeLength; i++) {
+						const pos = (strobePos + i) % barLength;
+						pixels[pos] = strobeColor;
+					}
+				}
+				
+				// Random sparkles EVERYWHERE (60% chance) - INCREASED
+				const sparkleCount = Math.floor(Math.random() * 5) + 3;
+				for (let s = 0; s < sparkleCount; s++) {
+					if (Math.random() < 0.6) {
+						const sparklePos = Math.floor(Math.random() * barLength);
+						const sparkleRgb = hsvToRgb(Math.random() * 360, 1, intensityMultiplier);
+						pixels[sparklePos] = (sparkleRgb.r << 16) | (sparkleRgb.g << 8) | sparkleRgb.b;
+					}
+				}
+				
+				// Random inversion sections (20% chance)
+				if (Math.random() < 0.2) {
+					const invertStart = Math.floor(Math.random() * barLength / 2);
+					const invertLength = Math.floor(Math.random() * 20) + 10;
+					for (let i = invertStart; i < Math.min(invertStart + invertLength, barLength); i++) {
+						const r = 255 - ((pixels[i] >> 16) & 0xff);
+						const g = 255 - ((pixels[i] >> 8) & 0xff);
+						const b = 255 - (pixels[i] & 0xff);
+						pixels[i] = (r << 16) | (g << 8) | b;
+					}
+				}
+				
+				// Random rotating segments (30% chance)
+				if (Math.random() < 0.3) {
+					const segmentSize = 8;
+					const segments = Math.floor(barLength / segmentSize);
+					for (let seg = 0; seg < segments; seg++) {
+						if (Math.random() < 0.5) {
+							const segStart = seg * segmentSize;
+							const hue = ((seg * 40 + offset * 10) % 360);
+							const rgb = hsvToRgb(hue, 1, intensityMultiplier);
+							for (let i = 0; i < segmentSize && segStart + i < barLength; i++) {
+								const brightness = Math.sin(offset / 5 + i) * 0.5 + 0.5;
+								const r = Math.floor(rgb.r * brightness);
+								const g = Math.floor(rgb.g * brightness);
+								const b = Math.floor(rgb.b * brightness);
+								pixels[segStart + i] = (r << 16) | (g << 8) | b;
+							}
+						}
+					}
+				}
+				
+				// Lightning flash effect (15% chance)
+				if (Math.random() < 0.15) {
+					const flashColor = Math.random() > 0.5 ? 0xFFFFFF : 0xFFFF00;
+					fill(pixels, flashColor, 0, barLength);
+				}
+				
+				// Triple split rainbow (25% chance)
+				if (Math.random() < 0.25) {
+					const third = Math.floor(barLength / 3);
+					for (let i = 0; i < barLength; i++) {
+						const section = Math.floor(i / third);
+						const hue = ((i + offset * (section + 1)) % 360);
+						const rgb = hsvToRgb(hue, 1, intensityMultiplier * 0.7);
+						const existingR = (pixels[i] >> 16) & 0xff;
+						const existingG = (pixels[i] >> 8) & 0xff;
+						const existingB = pixels[i] & 0xff;
+						const newR = Math.min(255, existingR + rgb.r);
+						const newG = Math.min(255, existingG + rgb.g);
+						const newB = Math.min(255, existingB + rgb.b);
+						pixels[i] = (newR << 16) | (newG << 8) | newB;
+					}
+				}
+				
+				// Extra random chaos pixels
+				for (let chaos = 0; chaos < 10; chaos++) {
+					if (Math.random() < 0.4) {
+						const chaosPos = Math.floor(Math.random() * barLength);
+						const chaosHue = Math.random() * 360;
+						const chaosRgb = hsvToRgb(chaosHue, 1, intensityMultiplier);
+						pixels[chaosPos] = (chaosRgb.r << 16) | (chaosRgb.g << 8) | chaosRgb.b;
 					}
 				}
 			}
