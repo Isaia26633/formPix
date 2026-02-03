@@ -85,7 +85,7 @@ async function raveController(req, res) {
 		const barLength = config.barPixels;
 		let offset = 0;
 		const intensityMultiplier = intensity / 100;
-		
+
 		// Chase mode needs persistent chaser positions and directions
 		const chasers = [
 			{ pos: 0, speed: 2.5, size: 10, hueOffset: 0, dir: 1 },       // Fast red
@@ -97,7 +97,7 @@ async function raveController(req, res) {
 			{ pos: 90, speed: 3.5, size: 7, hueOffset: 30, dir: -1 },     // Orange backwards
 			{ pos: 105, speed: 1.5, size: 14, hueOffset: 200, dir: 1 }    // Teal
 		];
-		
+
 		// Crazy mode tracking
 		let currentCrazyMode = 'rainbow';
 		let modeChangeCounter = 0;
@@ -128,13 +128,13 @@ async function raveController(req, res) {
 				}
 			} else if (mode === 'chase') {
 				// ABSOLUTE CHAOS - bouncing chasers with STROBING BACKGROUND
-				
+
 				// FULL STROBE BACKGROUND - changes every frame
 				const bgHue = Math.random() * 360;
 				const bgRgb = hsvToRgb(bgHue, 0.8, intensityMultiplier * 0.4);
 				const bgColor = (bgRgb.r << 16) | (bgRgb.g << 8) | bgRgb.b;
 				fill(pixels, bgColor, 0, barLength);
-				
+
 				// Additional random strobe sections (40% chance each frame)
 				if (Math.random() < 0.4) {
 					const strobePos = Math.floor(Math.random() * barLength);
@@ -146,19 +146,19 @@ async function raveController(req, res) {
 						pixels[pos] = strobeColor;
 					}
 				}
-				
+
 				// Random sparkles (40% chance)
 				if (Math.random() < 0.4) {
 					const sparklePos = Math.floor(Math.random() * barLength);
 					const sparkleRgb = hsvToRgb(Math.random() * 360, 1, intensityMultiplier);
 					pixels[sparklePos] = (sparkleRgb.r << 16) | (sparkleRgb.g << 8) | sparkleRgb.b;
 				}
-				
+
 				// Update and draw all bouncing chasers
 				for (let chaser of chasers) {
 					// Update position
 					chaser.pos += chaser.speed * chaser.dir;
-					
+
 					// Bounce at edges with explosion effect
 					if (chaser.pos <= 0 || chaser.pos >= barLength - chaser.size) {
 						chaser.dir *= -1;
@@ -172,12 +172,12 @@ async function raveController(req, res) {
 							}
 						}
 					}
-					
+
 					// Clamp position
 					chaser.pos = Math.max(0, Math.min(barLength - chaser.size, chaser.pos));
-					
+
 					const baseHue = ((offset * 15 + chaser.hueOffset) % 360);
-					
+
 					// Draw chaser with intense fading trail
 					for (let i = 0; i < chaser.size; i++) {
 						const pixelPos = Math.floor(chaser.pos + i);
@@ -185,23 +185,23 @@ async function raveController(req, res) {
 							const trailFade = 1 - (i / chaser.size);
 							const hue = (baseHue + i * 8) % 360;
 							const rgb = hsvToRgb(hue, 1, trailFade * intensityMultiplier);
-							
+
 							// Additive blending for insane color mixing
 							const existingR = (pixels[pixelPos] >> 16) & 0xff;
 							const existingG = (pixels[pixelPos] >> 8) & 0xff;
 							const existingB = pixels[pixelPos] & 0xff;
-							
+
 							const newR = Math.min(255, existingR + rgb.r);
 							const newG = Math.min(255, existingG + rgb.g);
 							const newB = Math.min(255, existingB + rgb.b);
-							
+
 							pixels[pixelPos] = (newR << 16) | (newG << 8) | newB;
 						}
 					}
 				}
 			} else if (mode === 'crazy') {
 				// CRAZY MODE - ALL EFFECTS AT ONCE WITH ROTATING MODES
-				
+
 				// Rotate through modes every N frames
 				modeChangeCounter++;
 				if (modeChangeCounter >= modeRotationSpeed) {
@@ -209,9 +209,9 @@ async function raveController(req, res) {
 					const modes = ['rainbow', 'strobe', 'pulse', 'chase'];
 					currentCrazyMode = modes[Math.floor(Math.random() * modes.length)];
 				}
-				
+
 				const midPoint = Math.floor(barLength / 2);
-				
+
 				// Split bar into two halves with different effects
 				if (currentCrazyMode === 'rainbow') {
 					// Left half: forward rainbow
@@ -256,10 +256,10 @@ async function raveController(req, res) {
 					const bgRgb = hsvToRgb(bgHue, 0.8, intensityMultiplier * 0.3);
 					const bgColor = (bgRgb.r << 16) | (bgRgb.g << 8) | bgRgb.b;
 					fill(pixels, bgColor, 0, barLength);
-					
+
 					for (let chaser of chasers) {
 						chaser.pos += chaser.speed * chaser.dir;
-						
+
 						if (chaser.pos <= 0 || chaser.pos >= barLength - chaser.size) {
 							chaser.dir *= -1;
 							// Mini explosion
@@ -272,33 +272,33 @@ async function raveController(req, res) {
 								}
 							}
 						}
-						
+
 						chaser.pos = Math.max(0, Math.min(barLength - chaser.size, chaser.pos));
 						const baseHue = ((offset * 20 + chaser.hueOffset) % 360);
-						
+
 						for (let i = 0; i < chaser.size; i++) {
 							const pixelPos = Math.floor(chaser.pos + i);
 							if (pixelPos >= 0 && pixelPos < barLength) {
 								const trailFade = 1 - (i / chaser.size);
 								const hue = (baseHue + i * 10) % 360;
 								const rgb = hsvToRgb(hue, 1, trailFade * intensityMultiplier);
-								
+
 								const existingR = (pixels[pixelPos] >> 16) & 0xff;
 								const existingG = (pixels[pixelPos] >> 8) & 0xff;
 								const existingB = pixels[pixelPos] & 0xff;
-								
+
 								const newR = Math.min(255, existingR + rgb.r);
 								const newG = Math.min(255, existingG + rgb.g);
 								const newB = Math.min(255, existingB + rgb.b);
-								
+
 								pixels[pixelPos] = (newR << 16) | (newG << 8) | newB;
 							}
 						}
 					}
 				}
-				
+
 				// MAXIMUM CHAOS - Add TONS of random elements every frame
-				
+
 				// Random full-screen glitch (10% chance)
 				glitchCounter++;
 				if (Math.random() < 0.1 || glitchCounter % 7 === 0) {
@@ -308,7 +308,7 @@ async function raveController(req, res) {
 					const glitchRgb = hsvToRgb(glitchHue, 1, intensityMultiplier);
 					fill(pixels, (glitchRgb.r << 16) | (glitchRgb.g << 8) | glitchRgb.b, glitchPos, glitchLength);
 				}
-				
+
 				// Random strobe sections (50% chance) - INCREASED
 				if (Math.random() < 0.5) {
 					const strobePos = Math.floor(Math.random() * barLength);
@@ -321,7 +321,7 @@ async function raveController(req, res) {
 						pixels[pos] = strobeColor;
 					}
 				}
-				
+
 				// Random sparkles EVERYWHERE (60% chance) - INCREASED
 				const sparkleCount = Math.floor(Math.random() * 5) + 3;
 				for (let s = 0; s < sparkleCount; s++) {
@@ -331,7 +331,7 @@ async function raveController(req, res) {
 						pixels[sparklePos] = (sparkleRgb.r << 16) | (sparkleRgb.g << 8) | sparkleRgb.b;
 					}
 				}
-				
+
 				// Random inversion sections (20% chance)
 				if (Math.random() < 0.2) {
 					const invertStart = Math.floor(Math.random() * barLength / 2);
@@ -343,7 +343,7 @@ async function raveController(req, res) {
 						pixels[i] = (r << 16) | (g << 8) | b;
 					}
 				}
-				
+
 				// Random rotating segments (30% chance)
 				if (Math.random() < 0.3) {
 					const segmentSize = 8;
@@ -363,13 +363,13 @@ async function raveController(req, res) {
 						}
 					}
 				}
-				
+
 				// Lightning flash effect (15% chance)
 				if (Math.random() < 0.15) {
 					const flashColor = Math.random() > 0.5 ? 0xFFFFFF : 0xFFFF00;
 					fill(pixels, flashColor, 0, barLength);
 				}
-				
+
 				// Triple split rainbow (25% chance)
 				if (Math.random() < 0.25) {
 					const third = Math.floor(barLength / 3);
@@ -386,7 +386,7 @@ async function raveController(req, res) {
 						pixels[i] = (newR << 16) | (newG << 8) | newB;
 					}
 				}
-				
+
 				// Extra random chaos pixels
 				for (let chaos = 0; chaos < 10; chaos++) {
 					if (Math.random() < 0.4) {
@@ -440,9 +440,9 @@ function hsvToRgb(h, s, v) {
 	const c = v * s;
 	const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
 	const m = v - c;
-	
+
 	let r = 0, g = 0, b = 0;
-	
+
 	if (h >= 0 && h < 60) {
 		r = c; g = x; b = 0;
 	} else if (h >= 60 && h < 120) {
@@ -456,7 +456,7 @@ function hsvToRgb(h, s, v) {
 	} else if (h >= 300 && h < 360) {
 		r = c; g = 0; b = x;
 	}
-	
+
 	return {
 		r: Math.round((r + m) * 255),
 		g: Math.round((g + m) * 255),
@@ -577,10 +577,27 @@ async function progressController(req, res) {
  */
 function animateProgress(start, length, startingFill, duration, interval, bg1, bg2, fg1, fg2) {
 	const { pixels, ws281x } = require('../state');
+	const { hexToRgb, rgbToHex } = require('../utils/colorUtils');
+
+	const fg1Rgb = hexToRgb(fg1);
+	const fg2Rgb = hexToRgb(fg2);
+	const fgGradientColors = [];
+	const stepColor = length > 1 ? fg1Rgb.map((c, i) => (fg2Rgb[i] - c) / (length - 1)) : [0, 0, 0];
+
+	for (let i = 0; i < length; i++) {
+		fgGradientColors[i] = rgbToHex([
+			Math.round(fg1Rgb[0] + stepColor[0] * i),
+			Math.round(fg1Rgb[1] + stepColor[1] * i),
+			Math.round(fg1Rgb[2] + stepColor[2] * i)
+		]);
+	}
+
 	if (duration === undefined) {
-		// No animation, just fill instantly to 100%
+		//fills the bar if no duration is provided
 		gradient(pixels, bg1, bg2, start, length);
-		gradient(pixels, fg1, fg2, start, length);
+		for (let i = 0; i < length; i++) {
+			pixels[start + i] = fgGradientColors[i];
+		}
 		ws281x.render();
 		return;
 	}
@@ -603,9 +620,9 @@ function animateProgress(start, length, startingFill, duration, interval, bg1, b
 		// Draw background gradient
 		gradient(pixels, bg1, bg2, start, length);
 
-		// Draw foreground gradient over the filled portion
-		if (fillLength > 0) {
-			gradient(pixels, fg1, fg2, start, fillLength);
+		// Draw foreground using pre-calculated gradient colors (reveals the gradient as it fills)
+		for (let i = 0; i < fillLength; i++) {
+			pixels[start + i] = fgGradientColors[i];
 		}
 
 		ws281x.render();
