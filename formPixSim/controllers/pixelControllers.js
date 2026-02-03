@@ -53,11 +53,13 @@ async function raveController(req, res) {
 		let {
 			speed = 50,
 			mode = 'rainbow',
-			intensity = 100
+			intensity = 100,
+			bpm
 		} = req.query;
 
 		speed = Number(speed);
 		intensity = Number(intensity);
+		if (bpm !== undefined) bpm = Number(bpm);
 
 		// Validate parameters
 		if (isNaN(speed) || speed <= 0) {
@@ -67,6 +69,11 @@ async function raveController(req, res) {
 
 		if (isNaN(intensity) || intensity < 0 || intensity > 100) {
 			res.status(400).json({ error: 'intensity must be a number between 0 and 100' });
+			return;
+		}
+
+		if (bpm !== undefined && (isNaN(bpm) || bpm <= 0 || bpm > 300)) {
+			res.status(400).json({ error: 'bpm must be a positive number between 1 and 300' });
 			return;
 		}
 
@@ -85,6 +92,14 @@ async function raveController(req, res) {
 		const barLength = config.barPixels;
 		let offset = 0;
 		const intensityMultiplier = intensity / 100;
+		
+		// Calculate interval timing based on mode and BPM
+		let intervalTiming = speed;
+		if (mode === 'crazy' && bpm !== undefined) {
+			// Convert BPM to milliseconds per beat (quarter note)
+			// For visual effects, use half the beat duration for faster updates
+			intervalTiming = (60000 / bpm) / 2;
+		}
 		
 		// Chase mode needs persistent chaser positions and directions
 		const chasers = [
@@ -400,10 +415,10 @@ async function raveController(req, res) {
 
 			offset++;
 			ws281x.render();
-		}, speed);
+		}, intervalTiming);
 
-		logger.info('Rave mode started', { speed, mode, intensity });
-		res.status(200).json({ message: 'ok', mode: 'rave started' });
+		logger.info('Rave mode started', { speed, mode, intensity, bpm, intervalTiming });
+		res.status(200).json({ message: 'ok', mode: 'rave started', bpm: bpm || null });
 	} catch (err) {
 		logger.error('Error in raveController', { error: err.message, stack: err.stack, query: req.query });
 		res.status(500).json({ error: 'There was a server error try again' });
