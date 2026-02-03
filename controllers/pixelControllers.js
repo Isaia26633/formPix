@@ -168,10 +168,27 @@ async function progressController(req, res) {
  */
 function animateProgress(start, length, startingFill, duration, interval, bg1, bg2, fg1, fg2) {
 	const { pixels, ws281x } = require('../state');
+	const { hexToRgb, rgbToHex } = require('../utils/colorUtils');
+
+	const fg1Rgb = hexToRgb(fg1);
+	const fg2Rgb = hexToRgb(fg2);
+	const fgGradientColors = [];
+	const stepColor = length > 1 ? fg1Rgb.map((c, i) => (fg2Rgb[i] - c) / (length - 1)) : [0, 0, 0];
+
+	for (let i = 0; i < length; i++) {
+		fgGradientColors[i] = rgbToHex([
+			Math.round(fg1Rgb[0] + stepColor[0] * i),
+			Math.round(fg1Rgb[1] + stepColor[1] * i),
+			Math.round(fg1Rgb[2] + stepColor[2] * i)
+		]);
+	}
+
 	if (duration === undefined) {
-		// No animation, just fill instantly to 100%
+		//fills the bar if no duration is provided
 		gradient(pixels, bg1, bg2, start, length);
-		gradient(pixels, fg1, fg2, start, length);
+		for (let i = 0; i < length; i++) {
+			pixels[start + i] = fgGradientColors[i];
+		}
 		ws281x.render();
 		return;
 	}
@@ -194,9 +211,9 @@ function animateProgress(start, length, startingFill, duration, interval, bg1, b
 		// Draw background gradient
 		gradient(pixels, bg1, bg2, start, length);
 
-		// Draw foreground gradient over the filled portion
-		if (fillLength > 0) {
-			gradient(pixels, fg1, fg2, start, fillLength);
+		// Draw foreground using pre-calculated gradient colors (reveals the gradient as it fills)
+		for (let i = 0; i < fillLength; i++) {
+			pixels[start + i] = fgGradientColors[i];
 		}
 
 		ws281x.render();
