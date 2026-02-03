@@ -10,14 +10,11 @@ const { displayBoard } = require('../utils/displayUtils');
  */
 async function sayController(req, res) {
 	try {
-		// console.log('sayController called');
-		// console.log('req.query:', req.query);
 		
 		const { pixels, config, boardIntervals, ws281x } = require('../state');
 		
 		let { text, textColor, backgroundColor, scroll } = req.query
-		// console.log('Extracted params - text:', text, 'textColor:', textColor, 'backgroundColor:', backgroundColor, 'scroll:', scroll);
-
+	
 		if (!text) {
 			res.status(400).json({ error: 'You did not provide any text' })
 			return
@@ -43,9 +40,8 @@ async function sayController(req, res) {
 		}
 		if (backgroundColor instanceof Error) throw backgroundColor
 
-		// console.log('Calling displayBoard with scroll:', scroll ? parseInt(scroll) : 100);
 		let display = displayBoard(pixels, text, textColor, backgroundColor, config, boardIntervals, ws281x, 0, null, scroll ? parseInt(scroll) : 100)
-		// console.log('displayBoard returned:', display);
+
 		if (!display) {
 			res.status(500).json({ error: 'There was a server error try again' })
 			return

@@ -37,7 +37,6 @@ function handleConnectError(socket, boardIntervals) {
  */
 function handleConnect(socket, boardIntervals) {
 	return () => {
-		console.log('connected')
 
 		state.connected = true
 
@@ -55,7 +54,6 @@ function handleConnect(socket, boardIntervals) {
  */
 function handleRequestClassUpdate(socket) {
 	return () => {
-		console.log('Requesting class update');
 		socket.emit('getActiveClass', state.config.api);
 	}
 }
@@ -85,7 +83,6 @@ function handleSetClass(socket, boardIntervals) {
 				handleRequestClassUpdate(socket)();
 			}
 		}
-		console.log('Moved to class id:', userClassId);
 		state.classId = userClassId;
 	}
 }
