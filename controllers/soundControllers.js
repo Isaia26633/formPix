@@ -48,10 +48,10 @@ async function playSoundController(req, res) {
 			logger.info('Sound played successfully', { bgm, sfx });
 			res.status(200).json({ message: 'ok' })
 
-		} else res.status(500).json({ error: 'There was a server error try again' })
+		} else res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
 	} catch (err) {
 		logger.error('Error in playSoundController', { error: err.message, stack: err.stack, query: req.query });
-		res.status(500).json({ error: 'There was a server error try again' })
+		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
 	}
 }
 
