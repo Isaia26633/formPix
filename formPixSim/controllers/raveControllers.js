@@ -399,6 +399,11 @@ async function raveStopController(req, res) {
 		if (currentRaveInterval) {
 			clearInterval(currentRaveInterval);
 			currentRaveInterval = null;
+			// Clear the bar when stopping rave mode
+			const { pixels, config, ws281x } = require('../state');
+			const { fill } = require('../utils/pixelOps');
+			fill(pixels, 0x000000, 0, config.barPixels);
+			ws281x.render();
 			logger.info('Rave mode stopped');
 			res.status(200).json({ message: 'ok', mode: 'rave stopped' });
 		} else {
