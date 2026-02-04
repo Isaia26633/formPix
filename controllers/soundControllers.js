@@ -43,8 +43,24 @@ async function playSoundController(req, res) {
 
 			logger.warn('Play sound failed', { error: sound, bgm, sfx });
 			res.status(status).json({ error: sound })
-		} else if (sound == true) {
+		} else if (sound === true || (sound && typeof sound.on === 'function')) {
 			isPlayingSound = true;
+
+			// If playSound returned a child process or event emitter, clear the flag when playback ends or errors.
+			if (sound && typeof sound.on === 'function') {
+				const clearIsPlayingSound = () => {
+					isPlayingSound = false;
+					if (typeof sound.removeListener === 'function') {
+						sound.removeListener('close', clearIsPlayingSound);
+						sound.removeListener('exit', clearIsPlayingSound);
+						sound.removeListener('error', clearIsPlayingSound);
+					}
+				};
+
+				sound.on('close', clearIsPlayingSound);
+				sound.on('exit', clearIsPlayingSound);
+				sound.on('error', clearIsPlayingSound);
+			}
 			logger.info('Sound played successfully', { bgm, sfx });
 			res.status(200).json({ message: 'ok' })
 
