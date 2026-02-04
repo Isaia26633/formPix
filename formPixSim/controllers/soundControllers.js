@@ -49,6 +49,13 @@ async function playSoundController(req, res) {
 			res.status(status).json({ error: sound })
 		} else if (sound == true) {
 			isPlayingSound = true;
+			// Clear the playing flag once the response has completed,
+			// so future requests are not permanently blocked.
+			const resetPlayingFlag = () => {
+				isPlayingSound = false;
+			};
+			res.once('finish', resetPlayingFlag);
+			res.once('close', resetPlayingFlag);
 			logger.info('Sound played successfully', { bgm, sfx });
 			res.status(200).json({ message: 'ok' })
 			
