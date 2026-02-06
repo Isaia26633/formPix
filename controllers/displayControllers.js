@@ -2,6 +2,7 @@
  * Controllers for display and text routes
  */
 
+const logger = require('../utils/logger');
 const { textToHexColor } = require('../utils/colorUtils');
 const { displayBoard } = require('../utils/displayUtils');
 
@@ -10,6 +11,7 @@ const { displayBoard } = require('../utils/displayUtils');
  */
 async function sayController(req, res) {
 	try {
+		logger.info('API Call: /api/say', { query: req.query });
 		
 		const { pixels, config, boardIntervals, ws281x } = require('../state');
 		

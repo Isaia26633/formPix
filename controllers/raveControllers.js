@@ -11,6 +11,7 @@ let currentRaveInterval = null;
  */
 async function raveController(req, res) {
 	try {
+		logger.info('API Call: /api/rave', { query: req.query });
 		const { pixels, config, ws281x } = require('../state');
 		let {
 			speed = 50,
@@ -396,6 +397,7 @@ async function raveController(req, res) {
  */
 async function raveStopController(req, res) {
 	try {
+		logger.info('API Call: /api/rave/stop', { query: req.query });
 		if (currentRaveInterval) {
 			clearInterval(currentRaveInterval);
 			currentRaveInterval = null;
