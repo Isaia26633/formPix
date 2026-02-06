@@ -40,40 +40,94 @@ function safeJsonParse(string) {
 
 /**
  * Converts a color from text format to hexadecimal format.
+ * Supports multiple input formats: #RRGGBB, 0xRRGGBB, RRGGBB (without prefix), JSON RGB objects, and more.
  * @param {string} color - The input can be a string representing a color in hexadecimal format or a JSON string representing a color in RGB format.
  * @returns {number|string} - The color in hexadecimal format, or an error message if the input is not valid.
  */
 function textToHexColor(color) {
 	if (typeof color != 'string') return "Color must be a string";
 
+	// Trim whitespace
+	color = color.trim();
+
+	// Try standard hex format with # prefix
 	if (color.startsWith('#')) {
-		color = color.slice(1);
-		if (color.length != 6) return "Hex color must be 6 characters long";
-		return Number.parseInt(color, 16)
+		const hexColor = color.slice(1);
+		if (hexColor.length != 6) return "Hex color must be 6 characters long";
+		const parsed = Number.parseInt(hexColor, 16);
+		if (isNaN(parsed)) return "Invalid hexadecimal color value";
+		return parsed;
 	}
 
+	// Try 0x prefix format
+	if (color.startsWith('0x') || color.startsWith('0X')) {
+		const hexColor = color.slice(2);
+		if (hexColor.length != 6) return "Hex color must be 6 characters long";
+		const parsed = Number.parseInt(hexColor, 16);
+		if (isNaN(parsed)) return "Invalid hexadecimal color value";
+		return parsed;
+	}
+
+	// Try parsing as raw hex without prefix (6 characters)
+	if (/^[0-9a-fA-F]{6}$/.test(color)) {
+		const parsed = Number.parseInt(color, 16);
+		if (isNaN(parsed)) return "Invalid hexadecimal color value";
+		return parsed;
+	}
+
+	// Try JSON format (RGB object)
+	if (color.startsWith('{')) {
+		const parsed = safeJsonParse(color);
+		if (typeof parsed == 'string') return parsed;
+		if (parsed instanceof Error) throw parsed;
+
+		let red, green, blue;
+		const keys = Object.keys(parsed);
+
+		if (keys.every(item => ['red', 'green', 'blue'].includes(item))) {
+			red = parsed.red;
+			green = parsed.green;
+			blue = parsed.blue;
+		} else if (keys.every(item => ['r', 'g', 'b'].includes(item))) {
+			red = parsed.r;
+			green = parsed.g;
+			blue = parsed.b;
+		} else {
+			return "Invalid color keys. Use 'r','g','b' or 'red','green','blue'";
+		}
+
+		if ([red, green, blue].some(item =>
+			item < 0 || item > 255 || !Number.isInteger(item)
+		)) return "Color values must be integers between 0 and 255";
+
+		return rgbToHex([red, green, blue]);
+	}
+
+	// If all else fails, try to parse as JSON anyway
 	color = safeJsonParse(color);
 	if (typeof color == 'string') return color;
 	if (color instanceof Error) throw color;
 
 	let red, green, blue;
-	keys = Object.keys(color)
+	const keys = Object.keys(color);
 
 	if (keys.every(item => ['red', 'green', 'blue'].includes(item))) {
-		red = color.red
-		green = color.green
-		blue = color.blue
+		red = color.red;
+		green = color.green;
+		blue = color.blue;
 	} else if (keys.every(item => ['r', 'g', 'b'].includes(item))) {
-		red = color.r
-		green = color.g
-		blue = color.b
-	} else return "Invalid color keys";
+		red = color.r;
+		green = color.g;
+		blue = color.b;
+	} else {
+		return "Invalid color format. Use #RRGGBB, 0xRRGGBB, RRGGBB, or {r,g,b} JSON object";
+	}
 
 	if ([red, green, blue].some(item =>
 		item < 0 || item > 255 || !Number.isInteger(item)
 	)) return "Color values must be integers between 0 and 255";
 
-	return rgbToHex([red, green, blue])
+	return rgbToHex([red, green, blue]);
 }
 
 module.exports = {
