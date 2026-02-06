@@ -2,6 +2,7 @@
  * Controllers for sound routes
  */
 
+const logger = require('../utils/logger');
 const { playSound } = require('../utils/soundUtils');
 
 /**
@@ -9,6 +10,7 @@ const { playSound } = require('../utils/soundUtils');
  */
 async function getSoundsController(req, res) {
 	try {
+		logger.info('API Call: /api/getSounds', { query: req.query });
 		const { sounds } = require('../state');
 
 		let type = req.query.type
@@ -27,6 +29,7 @@ async function getSoundsController(req, res) {
  */
 async function playSoundController(req, res) {
 	try {
+		logger.info('API Call: /api/playSound', { query: req.query });
 		// if a sound is playing already, reject the request
 		if (isPlayingSound) {
 			logger.warn('Play sound request rejected: another sound is already playing');

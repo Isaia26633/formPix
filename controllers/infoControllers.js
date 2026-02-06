@@ -9,6 +9,7 @@ const logger = require('../utils/logger');
  */
 async function getInfoController(req, res) {
 	try {
+		logger.info('API Call: /api/info', { query: req.query });
 		const { config, pixels, BOARD_WIDTH, BOARD_HEIGHT } = require('../state');
 		
 		res.status(200).json({

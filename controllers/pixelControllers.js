@@ -23,6 +23,7 @@ function cancelRave() {
  */
 function percentageController(req, res) {
 	try {
+		logger.info('API Call: /api/percentage', { query: req.query });
 		const { pixels, config, ws281x } = require('../state');
 
 		let { percent, color } = req.query
@@ -57,6 +58,7 @@ let currentProgressInterval = null;
 
 async function progressController(req, res) {
 	try {
+		logger.info('API Call: /api/progress', { query: req.query });
 		const { pixels, config, ws281x } = require('../state');
 		let {
 			bg1,
@@ -231,6 +233,7 @@ function animateProgress(start, length, startingFill, duration, interval, bg1, b
  */
 async function fillByPercentController(req, res) {
 	try {
+		logger.info('API Call: /api/fillByPercent', { query: req.query });
 		const { pixels, config, ws281x } = require('../state');
 
 		let { percent, fillColor, bgColor, length = config.barPixels } = req.query;
@@ -295,6 +298,7 @@ async function fillByPercentController(req, res) {
  */
 async function fillController(req, res) {
 	try {
+		logger.info('API Call: /api/fill', { query: req.query });
 		const { pixels, config, ws281x } = require('../state');
 
 		let { color, start = 0, length = pixels.length } = req.query
@@ -334,6 +338,7 @@ async function fillController(req, res) {
  */
 async function gradientController(req, res) {
 	try {
+		logger.info('API Call: /api/gradient', { query: req.query });
 		const { pixels, config, ws281x } = require('../state');
 
 		let { startColor, endColor, start = 0, length = pixels.length } = req.query
@@ -390,6 +395,7 @@ async function gradientController(req, res) {
  */
 async function setPixelController(req, res) {
 	try {
+		logger.info('API Call: /api/setPixel', { query: req.query });
 		const { pixels, config, ws281x } = require('../state');
 
 		let { pixel, color } = req.query
@@ -427,6 +433,7 @@ async function setPixelController(req, res) {
  */
 async function setPixelsController(req, res) {
 	try {
+		logger.info('API Call: /api/setPixels', { query: req.query });
 		const { pixels, config, ws281x } = require('../state');
 		const { safeJsonParse } = require('../utils/colorUtils');
 
