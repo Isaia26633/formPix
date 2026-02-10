@@ -36,6 +36,7 @@ const {
 } = require('./sockets/soundHandlers');
 const { handleClassUpdate } = require('./sockets/pollHandlers');
 const { handleVBTimer } = require('./sockets/timerHandlers');
+const { playSound } = require('./utils/soundUtils');
 
 // ============================================================================
 // EXPRESS SETUP
@@ -93,6 +94,7 @@ socket.on('vbTimer', handleVBTimer());
 // SERVER START
 // ============================================================================
 
-httpServer.listen(state.config.port, async () => {
+httpServer.listen(state.config.port, () => {
 	console.log(`Server is up and running on port: ${state.config.port}`);
+	playSound({ sfx: 'bootup02.wav' });
 });
