@@ -3,3 +3,4 @@ settings.json
 .vscode
 logs/
 *.env
+config.py
