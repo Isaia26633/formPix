@@ -6,6 +6,7 @@
 const http = require('http');
 const express = require('express');
 const { io } = require('socket.io-client');
+const { spawn } = require('child_process');
 
 // Load application state
 const state = require('./state');
@@ -36,6 +37,7 @@ const {
 } = require('./sockets/soundHandlers');
 const { handleClassUpdate } = require('./sockets/pollHandlers');
 const { handleVBTimer } = require('./sockets/timerHandlers');
+const { playSound } = require('./utils/soundUtils');
 
 // ============================================================================
 // EXPRESS SETUP
@@ -93,6 +95,22 @@ socket.on('vbTimer', handleVBTimer());
 // SERVER START
 // ============================================================================
 
-httpServer.listen(state.config.port, async () => {
+httpServer.listen(state.config.port, () => {
 	console.log(`Server is up and running on port: ${state.config.port}`);
+	playSound({ sfx: 'bootup02.wav' });
+	
+	// Start Python script on app startup
+	const pythonProcess = spawn('python3', ['irRemote/FBIRSocket.py']);
+	
+	pythonProcess.stdout.on('data', (data) => {
+		console.log(`[Python] ${data}`);
+	});
+	
+	pythonProcess.stderr.on('data', (data) => {
+		console.error(`[Python Error] ${data}`);
+	});
+	
+	pythonProcess.on('close', (code) => {
+		console.log(`Python script exited with code ${code}`);
+	});
 });
