@@ -107,4 +107,29 @@ httpServer.listen(state.config.port, () => {
 		irRemote.start();
 		state.irRemote = irRemote;
 	}
+
+	// Gracefully stop IR Remote on process shutdown to cleanup GPIO
+	const cleanupIrRemote = () => {
+		if (state.irRemote && typeof state.irRemote.stop === 'function') {
+			try {
+				state.irRemote.stop();
+			} catch (err) {
+				console.error('Error while stopping IR Remote:', err);
+			}
+		}
+	};
+
+	process.on('SIGINT', () => {
+		cleanupIrRemote();
+		process.exit(0);
+	});
+
+	process.on('SIGTERM', () => {
+		cleanupIrRemote();
+		process.exit(0);
+	});
+
+	process.on('exit', () => {
+		cleanupIrRemote();
+	});
 });
