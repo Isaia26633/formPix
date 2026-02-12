@@ -6,7 +6,9 @@
 const http = require('http');
 const express = require('express');
 const { io } = require('socket.io-client');
-const { spawn } = require('child_process');
+
+// Import IR Remote module
+const { IRRemote } = require('./utils/irRemote');
 
 // Load application state
 const state = require('./state');
@@ -99,18 +101,36 @@ httpServer.listen(state.config.port, () => {
 	console.log(`Server is up and running on port: ${state.config.port}`);
 	playSound({ sfx: 'bootup02.wav' });
 	
-	// Start Python script on app startup
-	const pythonProcess = spawn('python3', ['irRemote/FBIRSocket.py']);
-	
-	pythonProcess.stdout.on('data', (data) => {
-		console.log(`[Python] ${data}`);
+	// Initialize IR Remote (uses GPIO pin from config)
+	// Set irPin to -1 in .env to disable IR remote
+	if (state.config.irPin !== -1) {
+		const irRemote = new IRRemote(socket, state.config.irPin);
+		irRemote.start();
+		state.irRemote = irRemote;
+	}
+
+	// Gracefully stop IR Remote on process shutdown to cleanup GPIO
+	const cleanupIrRemote = () => {
+		if (state.irRemote && typeof state.irRemote.stop === 'function') {
+			try {
+				state.irRemote.stop();
+			} catch (err) {
+				console.error('Error while stopping IR Remote:', err);
+			}
+		}
+	};
+
+	process.on('SIGINT', () => {
+		cleanupIrRemote();
+		process.exit(0);
 	});
-	
-	pythonProcess.stderr.on('data', (data) => {
-		console.error(`[Python Error] ${data}`);
+
+	process.on('SIGTERM', () => {
+		cleanupIrRemote();
+		process.exit(0);
 	});
-	
-	pythonProcess.on('close', (code) => {
-		console.log(`Python script exited with code ${code}`);
+
+	process.on('exit', () => {
+		cleanupIrRemote();
 	});
 });
