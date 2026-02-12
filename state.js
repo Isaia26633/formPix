@@ -19,7 +19,8 @@ const config = {
     stripType: process.env.stripType || 'WS2812',
     barPixels: parseInt(process.env.barPixels) || 0,
     boards: parseInt(process.env.boards) || 0,
-    port: parseInt(process.env.port) || 421
+    port: parseInt(process.env.port) || 421,
+    irPin: process.env.irPin ? parseInt(process.env.irPin) : -1
 };
 
 // Constants

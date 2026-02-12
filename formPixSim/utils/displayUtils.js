@@ -83,6 +83,24 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 	let endPixel = config.barPixels + endColumn * BOARD_HEIGHT
 
 	let boardPixels = [Array(8).fill(0)];
+	const buildBoardPixels = () => {
+		let builtPixels = [Array(8).fill(0)];
+
+		for (let letter of string) {
+			if (!letters[letter]) continue
+
+			let letterImage = letters[letter].map(arr => arr.slice());
+			for (let col of letterImage) {
+				builtPixels.push(col);
+			}
+
+			const unspacedLetters = ['\u266A', '\u26CA', '\u26C9'];
+			if (!unspacedLetters.includes(letter)) builtPixels.push(Array(8).fill(0));
+		}
+
+		return builtPixels;
+	}
+	const isStaticDisplay = stringColumnLength <= endColumn - startColumn;
 
 	for (let boardInterval of boardIntervals) {
 		if (!boardInterval) continue
@@ -94,7 +112,14 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 			textColor == boardInterval.textColor &&
 			backgroundColor == boardInterval.backgroundColor &&
 			scroll == boardInterval.scroll
-		) return
+		) {
+			// Static displays need repaint when callers clear board pixels before calling displayBoard.
+			if (!boardInterval.interval && isStaticDisplay) {
+				showString(buildBoardPixels(), 0, textColor, backgroundColor, pixels, startPixel, endPixel);
+				ws281x.render();
+			}
+			return
+		}
 	}
 
 	// Clear overlapping intervals by mutating the array in place
@@ -114,18 +139,7 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 		}
 	}
 
-	for (let letter of string) {
-		if (!letters[letter]) continue
-
-		let letterImage = letters[letter].map(arr => arr.slice());
-
-		for (let col of letterImage) {
-			boardPixels.push(col);
-		}
-
-		const unspacedLetters = ['♪', '⛊', '⛉'];
-		if (!unspacedLetters.includes(letter)) boardPixels.push(Array(8).fill(0));
-	}
+	boardPixels = buildBoardPixels();
 
 	if (boardPixels.length - 1 <= endColumn - startColumn) {
 		showString(boardPixels, 0, textColor, backgroundColor, pixels, startPixel, endPixel);
