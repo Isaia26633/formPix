@@ -87,6 +87,7 @@ class IRRemote {
         this.pulses = [];
         this.lastPinState = 1;
         this.signalStartTime = null;
+        this.signalTimeout = null;
     }
 
     /**
