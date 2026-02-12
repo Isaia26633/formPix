@@ -6,7 +6,7 @@ const logger = require('../utils/logger');
 const util = require('util');
 const { fill, gradient } = require('../utils/pixelOps');
 const { displayBoard, getStringColumnLength } = require('../utils/displayUtils');
-const { playSound } = require('../utils/soundUtils');
+const { playSound, player } = require('../utils/soundUtils');
 const PIXELS_PER_LETTER = 5;
 
 /**
@@ -54,23 +54,21 @@ function handleClassUpdate() {
 
 			const responsesArray = getResponsesArray()
 
-			for (let poll of Object.values(newPollData.responses)) {
-				pollResponses += poll.responses
-			}
+		for (let poll of Object.values(newPollData.responses)) {
+			pollResponses += poll.responses
+		}
 
-			if (newPollData.totalResponses === 6 && newPollData.totalResponders === 9) {
-				player.play('./sfx/clicknice.wav')
-			}
+		if (newPollData.totalResponses === 6 && newPollData.totalResponders === 9) {
+			if (player) player.play('./sfx/clicknice.wav')
+		}
 
-			if (newPollData.totalResponses === 6 && newPollData.totalResponders === 7) {
-				player.play('./sfx/brainrot.wav')
-			}
+		if (newPollData.totalResponses === 6 && newPollData.totalResponders === 7) {
+			if (player) player.play('./sfx/brainrot.wav')
+		}
 
-			if (newPollData.totalResponses === 4 && newPollData.totalResponders === 20) {
-				player.play('./sfx/snoop.wav')
-			}
-
-			if (!timerData.active) {
+		if (newPollData.totalResponses === 4 && newPollData.totalResponders === 20) {
+			if (player) player.play('./sfx/snoop.wav')
+		}			if (!timerData.active) {
 				fill(pixels, 0x808080, 0, config.barPixels)
 
 				for (let poll of Object.values(newPollData.responses)) {

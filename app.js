@@ -7,6 +7,9 @@ const http = require('http');
 const express = require('express');
 const { io } = require('socket.io-client');
 
+// Import IR Remote module
+const { IRRemote } = require('./utils/irRemote');
+
 // Load application state
 const state = require('./state');
 
@@ -36,6 +39,7 @@ const {
 } = require('./sockets/soundHandlers');
 const { handleClassUpdate } = require('./sockets/pollHandlers');
 const { handleVBTimer } = require('./sockets/timerHandlers');
+const { playSound } = require('./utils/soundUtils');
 
 // ============================================================================
 // EXPRESS SETUP
@@ -93,6 +97,40 @@ socket.on('vbTimer', handleVBTimer());
 // SERVER START
 // ============================================================================
 
-httpServer.listen(state.config.port, async () => {
+httpServer.listen(state.config.port, () => {
 	console.log(`Server is up and running on port: ${state.config.port}`);
+	playSound({ sfx: 'bootup02.wav' });
+	
+	// Initialize IR Remote (uses GPIO pin from config)
+	// Set irPin to -1 in .env to disable IR remote
+	if (state.config.irPin !== -1) {
+		const irRemote = new IRRemote(socket, state.config.irPin);
+		irRemote.start();
+		state.irRemote = irRemote;
+	}
+
+	// Gracefully stop IR Remote on process shutdown to cleanup GPIO
+	const cleanupIrRemote = () => {
+		if (state.irRemote && typeof state.irRemote.stop === 'function') {
+			try {
+				state.irRemote.stop();
+			} catch (err) {
+				console.error('Error while stopping IR Remote:', err);
+			}
+		}
+	};
+
+	process.on('SIGINT', () => {
+		cleanupIrRemote();
+		process.exit(0);
+	});
+
+	process.on('SIGTERM', () => {
+		cleanupIrRemote();
+		process.exit(0);
+	});
+
+	process.on('exit', () => {
+		cleanupIrRemote();
+	});
 });

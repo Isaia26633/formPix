@@ -5,6 +5,8 @@
 const logger = require('../utils/logger');
 const { playSound } = require('../utils/soundUtils');
 
+let isPlayingSound = false;
+
 /**
  * GET /api/getSounds - Get list of available sounds
  */
@@ -29,6 +31,12 @@ async function getSoundsController(req, res) {
  */
 async function playSoundController(req, res) {
 	try {
+		// if a sound is playing already, reject the request
+		if (isPlayingSound) {
+			logger.warn('Play sound request rejected: another sound is already playing');
+			return res.status(429).json({ error: 'Another sound is already playing' });
+		}
+		
 		let { bgm, sfx } = req.query
 
 		let sound = playSound({ bgm, sfx })
@@ -40,8 +48,17 @@ async function playSoundController(req, res) {
 			logger.warn('Play sound failed', { error: sound, bgm, sfx });
 			res.status(status).json({ error: sound })
 		} else if (sound == true) {
+			isPlayingSound = true;
+			// Clear the playing flag once the response has completed,
+			// so future requests are not permanently blocked.
+			const resetPlayingFlag = () => {
+				isPlayingSound = false;
+			};
+			res.once('finish', resetPlayingFlag);
+			res.once('close', resetPlayingFlag);
 			logger.info('Sound played successfully', { bgm, sfx });
 			res.status(200).json({ message: 'ok' })
+			
 		} else res.status(500).json({ error: 'There was a server error try again' })
 	} catch (err) {
 		logger.error('Error in playSoundController', { error: err.message, stack: err.stack, query: req.query });

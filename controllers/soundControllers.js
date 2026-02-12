@@ -2,6 +2,7 @@
  * Controllers for sound routes
  */
 
+const logger = require('../utils/logger');
 const { playSound } = require('../utils/soundUtils');
 
 /**
@@ -9,8 +10,9 @@ const { playSound } = require('../utils/soundUtils');
  */
 async function getSoundsController(req, res) {
 	try {
+		logger.info('API Call: /api/getSounds', { query: req.query });
 		const { sounds } = require('../state');
-		
+
 		let type = req.query.type
 
 		if (type == 'bgm') res.status(200).json(sounds.bgm)
@@ -27,6 +29,13 @@ async function getSoundsController(req, res) {
  */
 async function playSoundController(req, res) {
 	try {
+		logger.info('API Call: /api/playSound', { query: req.query });
+		// if a sound is playing already, reject the request
+		if (isPlayingSound) {
+			logger.warn('Play sound request rejected: another sound is already playing');
+			return res.status(429).json({ error: 'Another sound is already playing' });
+		}
+
 		let { bgm, sfx } = req.query
 
 		let sound = playSound({ bgm, sfx })
@@ -35,10 +44,32 @@ async function playSoundController(req, res) {
 			let status = 400
 			if (sound.endsWith(' does not exist.')) status = 404
 
-			res.status(status).json({ source: 'Formpix', error: sound })
-		} else if (sound == true) res.status(200).json({ message: 'ok' })
-		else res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
+			logger.warn('Play sound failed', { error: sound, bgm, sfx });
+			res.status(status).json({ error: sound })
+		} else if (sound === true || (sound && typeof sound.on === 'function')) {
+			isPlayingSound = true;
+
+			// If playSound returned a child process or event emitter, clear the flag when playback ends or errors.
+			if (sound && typeof sound.on === 'function') {
+				const clearIsPlayingSound = () => {
+					isPlayingSound = false;
+					if (typeof sound.removeListener === 'function') {
+						sound.removeListener('close', clearIsPlayingSound);
+						sound.removeListener('exit', clearIsPlayingSound);
+						sound.removeListener('error', clearIsPlayingSound);
+					}
+				};
+
+				sound.on('close', clearIsPlayingSound);
+				sound.on('exit', clearIsPlayingSound);
+				sound.on('error', clearIsPlayingSound);
+			}
+			logger.info('Sound played successfully', { bgm, sfx });
+			res.status(200).json({ message: 'ok' })
+
+		} else res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
 	} catch (err) {
+		logger.error('Error in playSoundController', { error: err.message, stack: err.stack, query: req.query });
 		res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })
 	}
 }
