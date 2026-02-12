@@ -2,6 +2,11 @@
  * IR Remote Controller for FormPix
  * Node.js conversion of the Python IR remote scripts
  * Uses the shared socket connection from the main app
+ * 
+ * Supports: NEC IR protocol (32-bit format)
+ * Signal format: 9ms leader pulse + 32 data bits + stop bit
+ * Bit encoding: ~560µs = '0', ~1.69ms = '1'
+ * Threshold used for bit discrimination: 1000µs
  */
 
 // GPIO library for Raspberry Pi (install with: npm install onoff)
@@ -266,6 +271,7 @@ class IRRemote {
      * Stop the IR remote listener
      */
     stop() {
+        clearTimeout(this.signalTimeout);
         this.running = false;
         
         if (this.gpio) {

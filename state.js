@@ -20,7 +20,7 @@ const config = {
     barPixels: parseInt(process.env.barPixels) || 0,
     boards: parseInt(process.env.boards) || 0,
     port: parseInt(process.env.port) || 421,
-    irPin: parseInt(process.env.irPin) || 0
+    irPin: process.env.irPin ? parseInt(process.env.irPin) : -1
 };
 
 // Constants

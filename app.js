@@ -102,7 +102,8 @@ httpServer.listen(state.config.port, () => {
 	playSound({ sfx: 'bootup02.wav' });
 	
 	// Initialize IR Remote (uses GPIO pin from config)
-	if (state.config.irPin) {
+	// Set irPin to -1 in .env to disable IR remote
+	if (state.config.irPin !== -1) {
 		const irRemote = new IRRemote(socket, state.config.irPin);
 		irRemote.start();
 		state.irRemote = irRemote;
