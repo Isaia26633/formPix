@@ -1,37 +1,12 @@
 /**
  * IR Remote Controller for FormPix
  * Node.js conversion of the Python IR remote scripts
- * Uses the shared socket connection from the main app
- * 
- * Supports: NEC IR protocol (32-bit format)
- * Signal format: 9ms leader pulse + 32 data bits + stop bit
- * Bit encoding: ~560µs = '0', ~1.69ms = '1'
- * Threshold used for bit discrimination: 1000µs
+ * Uses a Worker Thread for blocking GPIO reads so the main
+ * event loop stays free for lights, server, and sockets.
  */
 
-// GPIO libraries for Raspberry Pi.
-// onoff uses legacy sysfs GPIO; pigpio works on newer stacks.
-let OnOffGpio;
-let PigpioGpio;
-let rpio;
-
-try {
-    OnOffGpio = require('onoff').Gpio;
-} catch (err) {
-    OnOffGpio = null;
-}
-
-try {
-    PigpioGpio = require('pigpio').Gpio;
-} catch (err) {
-    PigpioGpio = null;
-}
-
-try {
-    rpio = require('rpio');
-} catch (err) {
-    rpio = null;
-}
+const { Worker } = require('worker_threads');
+const path = require('path');
 
 // IR button codes (hex values)
 const BUTTONS = {
@@ -99,16 +74,11 @@ class IRRemote {
     constructor(socket, pin = 27) {
         this.socket = socket;
         this.pin = pin;
-        this.gpio = null;
-        this.backend = null;
         this.lastCode = null;
         this.lastPressTime = 0;
         this.debounceMs = 200;
         this.running = false;
-        this.pulses = [];
-        this.lastPinState = 1;
-        this.signalStartTime = null;
-        this.signalTimeout = null;
+        this.worker = null;
     }
 
     /**
@@ -122,205 +92,66 @@ class IRRemote {
         }
         this.pin = parsedPin;
 
-        if (!OnOffGpio && !PigpioGpio && !rpio) {
-            console.log('[IR Remote] No GPIO backend available. Install "onoff", "pigpio", or "rpio".');
+        try {
+            this.worker = new Worker(path.join(__dirname, 'irWorker.js'), {
+                workerData: { pin: this.pin }
+            });
+
+            this.worker.on('message', (msg) => {
+                if (msg.type === 'ready') {
+                    this.running = true;
+                    console.log(`[IR Remote] Listening on GPIO pin ${msg.pin}`);
+                } else if (msg.type === 'error') {
+                    console.error(`[IR Remote] Worker error: ${msg.message}`);
+                } else if (msg.type === 'signal') {
+                    this._handleSignal(msg.code);
+                }
+            });
+
+            this.worker.on('error', (err) => {
+                console.error(`[IR Remote] Worker crashed: ${err.message}`);
+                this.running = false;
+            });
+
+            this.worker.on('exit', (code) => {
+                if (code !== 0) {
+                    console.error(`[IR Remote] Worker exited with code ${code}`);
+                }
+                this.running = false;
+            });
+
+            return true;
+        } catch (err) {
+            console.error(`[IR Remote] Failed to start: ${err.message}`);
             return false;
         }
-
-        // Try rpio first (works on newer Pi OS without sysfs)
-        if (rpio) {
-            try {
-                rpio.open(this.pin, rpio.INPUT);
-                this.backend = 'rpio';
-                this.running = true;
-
-                console.log(`[IR Remote] Started listening on GPIO pin ${this.pin} via rpio`);
-
-                // rpio doesn't have native interrupts, so we poll
-                this.pollInterval = setInterval(() => {
-                    const value = rpio.read(this.pin);
-                    if (value !== this.lastPinState) {
-                        this.handlePinChange(value);
-                    }
-                }, 0.05); // Poll every 50µs
-
-                return true;
-            } catch (err) {
-                console.warn(`[IR Remote] rpio failed on GPIO ${this.pin}: ${err.message}`);
-            }
-        }
-
-        let onoffError = null;
-        if (OnOffGpio) {
-            try {
-                this.gpio = new OnOffGpio(this.pin, 'in', 'both');
-                this.backend = 'onoff';
-                this.running = true;
-
-                console.log(`[IR Remote] Started listening on GPIO pin ${this.pin} via onoff`);
-
-                this.gpio.watch((err, value) => {
-                    if (err) {
-                        console.error('[IR Remote] GPIO error:', err);
-                        return;
-                    }
-                    this.handlePinChange(value);
-                });
-
-                return true;
-            } catch (err) {
-                onoffError = err;
-                const isSysfsArgError =
-                    err && (err.code === 'EINVAL' || `${err.message}`.toLowerCase().includes('invalid argument'));
-
-                if (isSysfsArgError) {
-                    console.warn(
-                        `[IR Remote] onoff failed on GPIO ${this.pin}: ${err.message}. ` +
-                        'This Raspberry Pi kernel likely has sysfs GPIO disabled.'
-                    );
-                } else {
-                    console.warn(`[IR Remote] onoff failed on GPIO ${this.pin}: ${err.message}`);
-                }
-            }
-        }
-
-        if (PigpioGpio) {
-            try {
-                this.gpio = new PigpioGpio(this.pin, {
-                    mode: PigpioGpio.INPUT,
-                    alert: true
-                });
-                this.backend = 'pigpio';
-                this.running = true;
-
-                console.log(`[IR Remote] Started listening on GPIO pin ${this.pin} via pigpio`);
-
-                this.gpio.on('alert', (level) => {
-                    this.handlePinChange(level);
-                });
-
-                return true;
-            } catch (err) {
-                console.error('[IR Remote] Failed to initialize pigpio backend:', err.message);
-                return false;
-            }
-        }
-
-        if (onoffError) {
-            console.error('[IR Remote] Failed to initialize GPIO:', onoffError.message);
-            console.error('[IR Remote] Install pigpio for newer Raspberry Pi OS kernels: npm i pigpio');
-        }
-
-        return false;
     }
 
     /**
-     * Handle GPIO pin state changes
+     * Handle a decoded IR signal from the worker
      */
-    handlePinChange(value) {
-        const pinState = Number(value);
-        if (pinState !== 0 && pinState !== 1) {
-            return;
-        }
+    _handleSignal(binarySignal) {
+        const hexSignal = '0x' + binarySignal.toString(16);
+        console.log(`[IR Remote] Received: ${hexSignal}`);
 
-        const now = process.hrtime.bigint();
-
-        if (pinState === 0 && this.lastPinState === 1) {
-            // Falling edge - start of signal
-            this.signalStartTime = now;
-        } else if (pinState === 1 && this.lastPinState === 0 && this.signalStartTime) {
-            // Rising edge - end of low pulse
-            const duration = Number(now - this.signalStartTime) / 1000; // Convert to microseconds
-            
-            if (duration > 100) {
-                this.pulses.push(duration);
-            }
-
-            // Check if we have enough pulses for a complete signal
-            if (this.pulses.length >= 33) {
-                this.processSignal();
-            }
-
-            // Reset signal start time for next measurement
-            this.signalStartTime = now;
-
-            // Set timeout to process partial signals
-            clearTimeout(this.signalTimeout);
-            this.signalTimeout = setTimeout(() => {
-                if (this.pulses.length >= 33) {
-                    this.processSignal();
-                }
-                this.pulses = [];
-            }, 50);
-        }
-
-        this.lastPinState = pinState;
-    }
-
-    /**
-     * Process the collected IR signal pulses
-     */
-    processSignal() {
-        if (this.pulses.length < 33) {
-            this.pulses = [];
-            return;
-        }
-
-        console.log(`[IR Remote] Processing signal with ${this.pulses.length} pulses`);
-
-        // Skip first pulse (leader) and get 32 data bits
-        const dataPulses = this.pulses.slice(1, 33);
-        
-        let binary = '';
-        for (const pulse of dataPulses) {
-            binary += pulse > 1000 ? '1' : '0';
-        }
-
-        if (binary.length !== 32) {
-            console.log(`[IR Remote] Invalid binary length: ${binary.length} (expected 32)`);
-            this.pulses = [];
-            return;
-        }
-
-        try {
-            const code = parseInt(binary, 2);
-            console.log(`[IR Remote] Decoded binary: ${binary} -> 0x${code.toString(16)}`);
-            this.handleButtonPress(code);
-        } catch (err) {
-            console.debug('[IR Remote] Failed to parse binary IR code', { binary, error: err });
-        }
-
-        this.pulses = [];
-    }
-
-    /**
-     * Handle a detected button press
-     */
-    handleButtonPress(code) {
+        // Debounce
         const now = Date.now();
-        const hexCode = '0x' + code.toString(16);
-
-        console.log(`[IR Remote] Received IR signal: ${hexCode}`);
-
-        // Debounce: ignore same button pressed within debounceMs
-        if (code === this.lastCode && now - this.lastPressTime < this.debounceMs) {
-            console.log(`[IR Remote] Debounced (same button within ${this.debounceMs}ms)`);
+        if (binarySignal === this.lastCode && now - this.lastPressTime < this.debounceMs) {
             return;
         }
-
-        this.lastCode = code;
+        this.lastCode = binarySignal;
         this.lastPressTime = now;
 
         // Find matching button
-        for (const [name, buttonCode] of Object.entries(BUTTONS)) {
-            if (code === buttonCode) {
-                console.log(`[IR Remote] Button matched: ${name} (${hexCode})`);
+        for (const [name, code] of Object.entries(BUTTONS)) {
+            if (binarySignal === code) {
+                console.log(`[IR Remote] Button: ${name}`);
                 this.executeAction(name);
                 return;
             }
         }
 
-        console.log(`[IR Remote] Unknown button code: ${hexCode}`);
+        console.log(`[IR Remote] Unknown code: ${hexSignal}`);
     }
 
     /**
@@ -333,9 +164,8 @@ class IRRemote {
         }
 
         const preset = POLL_PRESETS[buttonName];
-        
+
         if (preset) {
-            // Start a poll with the preset
             const pollType = preset.type || 0;
             try {
                 this.socket.emit('startPoll', [
@@ -357,7 +187,6 @@ class IRRemote {
                 console.error('[IR Remote] Failed to emit "startPoll":', err);
             }
         } else if (buttonName === 'play_pause') {
-            // Toggle/update poll
             try {
                 this.socket.emit('updatePoll', {});
                 console.log('[IR Remote] Updated poll');
@@ -371,23 +200,11 @@ class IRRemote {
      * Stop the IR remote listener
      */
     stop() {
-        clearTimeout(this.signalTimeout);
         this.running = false;
-        
-        if (this.gpio) {
-            if (this.backend === 'onoff') {
-                if (typeof this.gpio.unwatchAll === 'function') {
-                    this.gpio.unwatchAll();
-                }
-                this.gpio.unexport();
-            } else if (this.backend === 'pigpio') {
-                this.gpio.removeAllListeners('alert');
-                if (typeof this.gpio.disableAlert === 'function') {
-                    this.gpio.disableAlert();
-                }
-            }
-            this.gpio = null;
-            this.backend = null;
+
+        if (this.worker) {
+            this.worker.terminate();
+            this.worker = null;
         }
 
         console.log('[IR Remote] Stopped');
