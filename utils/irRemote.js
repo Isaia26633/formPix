@@ -103,6 +103,8 @@ class IRRemote {
                     console.log(`[IR Remote] Listening on GPIO pin ${msg.pin}`);
                 } else if (msg.type === 'error') {
                     console.error(`[IR Remote] Worker error: ${msg.message}`);
+                } else if (msg.type === 'debug') {
+                    console.log(`[IR Remote] ${msg.message}`);
                 } else if (msg.type === 'signal') {
                     this._handleSignal(msg.code);
                 }
@@ -166,22 +168,26 @@ class IRRemote {
         const preset = POLL_PRESETS[buttonName];
 
         if (preset) {
-            const pollType = preset.type || 0;
+            const textBox = preset.type === 1 ? 1 : 0;
             try {
-                this.socket.emit('startPoll', [
-                    0,                  // pollId
-                    pollType,           // type (0 = choice, 1 = essay)
-                    preset.title,       // title
-                    preset.answers,     // answers array
-                    false,              // anonymous
-                    1,                  // weight
-                    [],                 // include
-                    [],                 // exclude
-                    [],                 // tags
-                    [],                 // groups
-                    false,              // allowMultiple
-                    true                // showResults
-                ]);
+                // Formbar startPoll params (individual args, not array):
+                // responseNumber, responseTextBox, pollPrompt, polls,
+                // blind, weight, tags, boxes, indeterminate,
+                // lastResponse, multiRes, allowVoteChanges
+                this.socket.emit('startPoll',
+                    preset.answers.length,  // responseNumber
+                    textBox,                // responseTextBox
+                    preset.title,           // pollPrompt
+                    preset.answers,         // polls: PollOptions[]
+                    false,                  // blind
+                    1,                      // weight
+                    [],                     // tags
+                    [],                     // boxes
+                    [],                     // indeterminate
+                    [],                     // lastResponse
+                    false,                  // multiRes
+                    false                   // allowVoteChanges
+                );
                 console.log(`[IR Remote] Started poll: ${preset.title}`);
             } catch (err) {
                 console.error('[IR Remote] Failed to emit "startPoll":', err);
