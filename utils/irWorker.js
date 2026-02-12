@@ -17,7 +17,7 @@ try {
 const pin = workerData.pin || 27;
 
 try {
-    rpio.init({ gpiomem: true });
+    rpio.init({ gpiomem: true, mapping: 'gpio' });
     rpio.open(pin, rpio.INPUT);
     parentPort.postMessage({ type: 'ready', pin });
 } catch (err) {
@@ -103,4 +103,26 @@ function irLoop() {
 }
 
 parentPort.postMessage({ type: 'debug', message: `Pin ${pin} initial read: ${rpio.read(pin)}` });
+
+// First: raw pin test for 10 seconds to verify rpio can see pin changes
+parentPort.postMessage({ type: 'debug', message: 'Running raw pin test for 10 seconds - press a button now...' });
+let lastVal = rpio.read(pin);
+let changes = 0;
+const testEnd = timeNow() + 10;
+
+while (timeNow() < testEnd) {
+    const val = rpio.read(pin);
+    if (val !== lastVal) {
+        changes++;
+        if (changes <= 10) {
+            parentPort.postMessage({ type: 'debug', message: `Pin changed to ${val} (change #${changes})` });
+        }
+        lastVal = val;
+    }
+    rpio.usleep(10);
+}
+
+parentPort.postMessage({ type: 'debug', message: `Raw pin test done. Total changes detected: ${changes}` });
+
+// Now start the normal IR loop
 setImmediate(irLoop);
