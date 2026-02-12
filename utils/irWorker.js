@@ -45,6 +45,9 @@ function getBinary() {
         return null;
     }
 
+    // Pin went LOW — IR signal detected
+    parentPort.postMessage({ type: 'debug', message: 'Signal start detected (pin went LOW)' });
+
     const pulses = [];
     const startTime = timeNow();
 
@@ -63,6 +66,8 @@ function getBinary() {
         rpio.usleep(10);
     }
 
+    parentPort.postMessage({ type: 'debug', message: `Captured ${pulses.length} pulses` });
+
     if (pulses.length < 33) {
         return null;
     }
@@ -74,20 +79,28 @@ function getBinary() {
     }
 
     if (binary.length !== 32) {
+        parentPort.postMessage({ type: 'debug', message: `Bad binary length: ${binary.length}` });
         return null;
     }
 
     try {
-        return parseInt(binary, 2);
+        const code = parseInt(binary, 2);
+        parentPort.postMessage({ type: 'debug', message: `Decoded: 0x${code.toString(16)}` });
+        return code;
     } catch (err) {
         return null;
     }
 }
 
 // Main loop — blocks this thread only, main thread stays free
+let loopCount = 0;
 while (true) {
+    loopCount++;
+    // Log every 100 timeouts so we know the loop is alive
     const signal = getBinary();
     if (signal !== null) {
         parentPort.postMessage({ type: 'signal', code: signal });
+    } else if (loopCount % 100 === 0) {
+        parentPort.postMessage({ type: 'debug', message: `Waiting for signal... (${loopCount} loops, pin reads ${rpio.read(pin)})` });
     }
 }

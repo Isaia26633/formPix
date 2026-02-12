@@ -103,6 +103,8 @@ class IRRemote {
                     console.log(`[IR Remote] Listening on GPIO pin ${msg.pin}`);
                 } else if (msg.type === 'error') {
                     console.error(`[IR Remote] Worker error: ${msg.message}`);
+                } else if (msg.type === 'debug') {
+                    console.log(`[IR Remote] ${msg.message}`);
                 } else if (msg.type === 'signal') {
                     this._handleSignal(msg.code);
                 }
