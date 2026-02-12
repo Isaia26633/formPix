@@ -92,15 +92,15 @@ function getBinary() {
     }
 }
 
-// Main loop — blocks this thread only, main thread stays free
-let loopCount = 0;
-while (true) {
-    loopCount++;
-    // Log every 100 timeouts so we know the loop is alive
+// Main loop — uses setInterval so the worker event loop can flush messages
+function irLoop() {
     const signal = getBinary();
     if (signal !== null) {
         parentPort.postMessage({ type: 'signal', code: signal });
-    } else if (loopCount % 100 === 0) {
-        parentPort.postMessage({ type: 'debug', message: `Waiting for signal... (${loopCount} loops, pin reads ${rpio.read(pin)})` });
     }
+    // Immediately schedule next read (setImmediate lets messages flush)
+    setImmediate(irLoop);
 }
+
+parentPort.postMessage({ type: 'debug', message: `Pin ${pin} initial read: ${rpio.read(pin)}` });
+setImmediate(irLoop);
