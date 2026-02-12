@@ -139,18 +139,7 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 		}
 	}
 
-	for (let letter of string) {
-		if (!letters[letter]) continue
-
-		let letterImage = letters[letter].map(arr => arr.slice());
-
-		for (let col of letterImage) {
-			boardPixels.push(col);
-		}
-
-		const unspacedLetters = ['♪', '⛊', '⛉'];
-		if (!unspacedLetters.includes(letter)) boardPixels.push(Array(8).fill(0));
-	}
+	boardPixels = buildBoardPixels();
 
 	if (boardPixels.length - 1 <= endColumn - startColumn) {
 		showString(boardPixels, 0, textColor, backgroundColor, pixels, startPixel, endPixel);

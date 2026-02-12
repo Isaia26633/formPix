@@ -2,6 +2,11 @@
  * IR Remote Controller for FormPix
  * Node.js conversion of the Python IR remote scripts
  * Uses the shared socket connection from the main app
+ * 
+ * Supports: NEC IR protocol (32-bit format)
+ * Signal format: 9ms leader pulse + 32 data bits + stop bit
+ * Bit encoding: ~560µs = '0', ~1.69ms = '1'
+ * Threshold used for bit discrimination: 1000µs
  */
 
 // GPIO library for Raspberry Pi (install with: npm install onoff)
@@ -87,6 +92,7 @@ class IRRemote {
         this.pulses = [];
         this.lastPinState = 1;
         this.signalStartTime = null;
+        this.signalTimeout = null;
     }
 
     /**
@@ -231,25 +237,33 @@ class IRRemote {
         if (preset) {
             // Start a poll with the preset
             const pollType = preset.type || 0;
-            this.socket.emit('startPoll', [
-                0,                  // pollId
-                pollType,           // type (0 = choice, 1 = essay)
-                preset.title,       // title
-                preset.answers,     // answers array
-                false,              // anonymous
-                1,                  // weight
-                [],                 // include
-                [],                 // exclude
-                [],                 // tags
-                [],                 // groups
-                false,              // allowMultiple
-                true                // showResults
-            ]);
-            console.log(`[IR Remote] Started poll: ${preset.title}`);
+            try {
+                this.socket.emit('startPoll', [
+                    0,                  // pollId
+                    pollType,           // type (0 = choice, 1 = essay)
+                    preset.title,       // title
+                    preset.answers,     // answers array
+                    false,              // anonymous
+                    1,                  // weight
+                    [],                 // include
+                    [],                 // exclude
+                    [],                 // tags
+                    [],                 // groups
+                    false,              // allowMultiple
+                    true                // showResults
+                ]);
+                console.log(`[IR Remote] Started poll: ${preset.title}`);
+            } catch (err) {
+                console.error('[IR Remote] Failed to emit "startPoll":', err);
+            }
         } else if (buttonName === 'play_pause') {
             // Toggle/update poll
-            this.socket.emit('updatePoll', {});
-            console.log('[IR Remote] Updated poll');
+            try {
+                this.socket.emit('updatePoll', {});
+                console.log('[IR Remote] Updated poll');
+            } catch (err) {
+                console.error('[IR Remote] Failed to emit "updatePoll":', err);
+            }
         }
     }
 
@@ -257,6 +271,7 @@ class IRRemote {
      * Stop the IR remote listener
      */
     stop() {
+        clearTimeout(this.signalTimeout);
         this.running = false;
         
         if (this.gpio) {
