@@ -190,7 +190,7 @@ class IRRemote {
             const code = parseInt(binary, 2);
             this.handleButtonPress(code);
         } catch (err) {
-            // Invalid binary
+            console.debug('[IR Remote] Failed to parse binary IR code', { binary, error: err });
         }
 
         this.pulses = [];
