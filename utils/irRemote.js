@@ -266,6 +266,8 @@ class IRRemote {
             return;
         }
 
+        console.log(`[IR Remote] Processing signal with ${this.pulses.length} pulses`);
+
         // Skip first pulse (leader) and get 32 data bits
         const dataPulses = this.pulses.slice(1, 33);
         
@@ -275,12 +277,14 @@ class IRRemote {
         }
 
         if (binary.length !== 32) {
+            console.log(`[IR Remote] Invalid binary length: ${binary.length} (expected 32)`);
             this.pulses = [];
             return;
         }
 
         try {
             const code = parseInt(binary, 2);
+            console.log(`[IR Remote] Decoded binary: ${binary} -> 0x${code.toString(16)}`);
             this.handleButtonPress(code);
         } catch (err) {
             console.debug('[IR Remote] Failed to parse binary IR code', { binary, error: err });
@@ -296,8 +300,11 @@ class IRRemote {
         const now = Date.now();
         const hexCode = '0x' + code.toString(16);
 
+        console.log(`[IR Remote] Received IR signal: ${hexCode}`);
+
         // Debounce: ignore same button pressed within debounceMs
         if (code === this.lastCode && now - this.lastPressTime < this.debounceMs) {
+            console.log(`[IR Remote] Debounced (same button within ${this.debounceMs}ms)`);
             return;
         }
 
@@ -307,13 +314,13 @@ class IRRemote {
         // Find matching button
         for (const [name, buttonCode] of Object.entries(BUTTONS)) {
             if (code === buttonCode) {
-                console.log(`[IR Remote] Button pressed: ${name}`);
+                console.log(`[IR Remote] Button matched: ${name} (${hexCode})`);
                 this.executeAction(name);
                 return;
             }
         }
 
-        console.log(`[IR Remote] Unknown code: ${hexCode}`);
+        console.log(`[IR Remote] Unknown button code: ${hexCode}`);
     }
 
     /**
