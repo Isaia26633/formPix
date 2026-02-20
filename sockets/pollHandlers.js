@@ -155,21 +155,29 @@ function handleClassUpdate() {
 						let color = poll.color
 						if (blind) color = 0xFF8000
 
-						fill(pixels, color, currentPixel, pixelsPerStudent)
-						currentPixel += pixelsPerStudent
+						let pixelsToFill = Math.min(pixelsPerStudent, config.barPixels - currentPixel)
+
+						if (pixelsToFill <= 0) break
+
+						fill(pixels, color, currentPixel, pixelsToFill)
+						currentPixel += pixelsToFill
 
 						if (
 							responseNumber < poll.responses - 1 ||
 							pollNumber < nonEmptyPolls
 						) {
-							pixels[currentPixel] = 0xFF0080
+							if (currentPixel < config.barPixels) {
+								pixels[currentPixel] = 0xFF0080
+							}
 						}
 					}
 
 					if (
 						!blind &&
 						poll.responses > 0
-					) currentPixel++
+					) {
+						if (currentPixel < config.barPixels) currentPixel++
+					}
 					pollNumber++
 				}
 			}
@@ -178,7 +186,9 @@ function handleClassUpdate() {
 				text = `${newPollData.totalResponses}/${newPollData.totalResponders} `
 				if (newPollData.prompt) pollText = newPollData.prompt
 
-				fill(pixels, 0x000000, config.barPixels + getStringColumnLength(text + pollText) * 8)
+				const boardStartPixel = config.barPixels
+				const boardLength = config.boards * 32 * 8
+				fill(pixels, 0x000000, boardStartPixel, boardLength)
 
 				let display = displayBoard(pixels, text, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
 				if (display) boardIntervals.push(display)
