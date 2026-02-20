@@ -70,6 +70,7 @@ let state = {
 		sound: false
 	},
 	sounds: loadSounds(),
+	isPlayingSound: false,
 	BOARD_WIDTH,
 	BOARD_HEIGHT,
 	REQUIRED_PERMISSION

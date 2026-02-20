@@ -2,6 +2,31 @@
  * Pixel operations - fill, gradient, and display functions
  */
 
+const GAMMA = 2.8;
+
+/**
+ * Applies gamma correction to a single channel value (0-255).
+ * Corrects for the non-linear brightness perception of human eyes
+ * vs the linear output of WS2812 LEDs, making colors true to their hex values.
+ * @param {number} value - The channel value (0-255).
+ * @returns {number} The gamma corrected channel value.
+ */
+function gammaCorrect(value) {
+	return Math.round(Math.pow(value / 255.0, GAMMA) * 255);
+}
+
+/**
+ * Applies gamma correction to a hex color value.
+ * @param {number} color - The hex color value.
+ * @returns {number} The gamma corrected hex color value.
+ */
+function applyGamma(color) {
+	const r = gammaCorrect((color >> 16) & 255);
+	const g = gammaCorrect((color >> 8) & 255);
+	const b = gammaCorrect(color & 255);
+	return (r << 16) | (g << 8) | b;
+}
+
 /**
  * Fills a portion of the pixels array with a specified color.
  * @param {Uint32Array} pixels - The pixels array
@@ -12,8 +37,9 @@
 function fill(pixels, color, start = 0, length = pixels.length) {
 	if (length >= pixels.length) length = pixels.length - start;
 
+	const correctedColor = applyGamma(color);
 	for (let i = 0; i < length; i++) {
-		pixels[i + start] = color;
+		pixels[i + start] = correctedColor;
 	}
 }
 
@@ -45,11 +71,13 @@ function gradient(pixels, startColor, endColor, start = 0, length = pixels.lengt
 			Math.round(startColor[2] + stepColor[2] * i)
 		]
 
-		pixels[i + start] = rgbToHex(currentColor)
+		pixels[i + start] = rgbToHex(currentColor.map(gammaCorrect))
 	}
 }
 
 module.exports = {
 	fill,
-	gradient
+	gradient,
+	gammaCorrect,
+	applyGamma
 };

@@ -30,8 +30,9 @@ async function getSoundsController(req, res) {
 async function playSoundController(req, res) {
 	try {
 		logger.info('API Call: /api/playSound', { query: req.query });
+		const state = require('../state');
 		// if a sound is playing already, reject the request
-		if (isPlayingSound) {
+		if (state.isPlayingSound) {
 			logger.warn('Play sound request rejected: another sound is already playing');
 			return res.status(429).json({ error: 'Another sound is already playing' });
 		}
@@ -47,12 +48,12 @@ async function playSoundController(req, res) {
 			logger.warn('Play sound failed', { error: sound, bgm, sfx });
 			res.status(status).json({ error: sound })
 		} else if (sound === true || (sound && typeof sound.on === 'function')) {
-			isPlayingSound = true;
+			state.isPlayingSound = true;
 
 			// If playSound returned a child process or event emitter, clear the flag when playback ends or errors.
 			if (sound && typeof sound.on === 'function') {
 				const clearIsPlayingSound = () => {
-					isPlayingSound = false;
+					state.isPlayingSound = false;
 					if (typeof sound.removeListener === 'function') {
 						sound.removeListener('close', clearIsPlayingSound);
 						sound.removeListener('exit', clearIsPlayingSound);
