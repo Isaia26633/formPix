@@ -41,9 +41,6 @@ function handleConnect(socket, boardIntervals) {
 
 		state.connected = true
 
-		console.log(`Connected - Current class ID: ${state.classId}`);
-		logger.info(`Connected - Current class ID: ${state.classId}`);
-
 		socket.emit('getActiveClass', state.config.api);
 
 		const { pixels, config, ws281x } = state;
@@ -74,6 +71,8 @@ function handleSetClass(socket, boardIntervals) {
 			const { pixels, config, ws281x } = state;
 			fill(pixels, 0x000000, 0, config.barPixels)
 
+			logger.info('No active class - cleared display');
+
 			let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x, 0, null, 100)
 			if (!display) return
 			boardIntervals.push(display)
@@ -84,9 +83,13 @@ function handleSetClass(socket, boardIntervals) {
 			socket.emit('vbTimer')
 			if (!state.classRefreshed) {
 				state.classRefreshed = true;
+
+				logger.info(`Class update received - New class ID: ${userClassId}`);
+				
 				handleRequestClassUpdate(socket)();
 			}
 		}
+
 		state.classId = userClassId;
 	}
 }
