@@ -70,12 +70,14 @@ async function getDisplayController(req, res) {
 
 		const state = require('../state');
 
+		// Get default message (formbar URL without protocol)
+		const defaultMessage = state.config.formbarUrl ? state.config.formbarUrl.split('://')[1] : '';
 
 		const displayInfo = {
-			message: state.currentDisplayMessage || '',
-			textColor: state.currentDisplayMessage ? state.config.textColor || '#FFFFFF' : null,
-			backgroundColor: state.currentDisplayMessage ? state.config.backgroundColor || '#000000' : null,
-			scroll: state.currentDisplayMessage ? state.config.scroll || 100 : null,
+			message: state.currentDisplayMessage || defaultMessage,
+			textColor: state.config.textColor || '#FFFFFF',
+			backgroundColor: state.config.backgroundColor || '#000000',
+			scroll: state.config.scroll || 100,
 			textLength: state.currentDisplayMessage ? state.currentDisplayMessage.length : 0,
 			isActive: !!state.currentDisplayMessage,
 			timestamp: state.lastDisplayUpdate || null,

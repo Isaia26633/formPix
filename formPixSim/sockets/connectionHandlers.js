@@ -46,8 +46,9 @@ function handleConnect(socket, boardIntervals) {
 		const { pixels, config, ws281x } = state;
 		let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x, 0, null, 100)
 		if (!display) return
-		boardIntervals.push(display)
-	}
+		boardIntervals.push(display)	
+	// Set timestamp for default message display
+	state.lastDisplayUpdate = new Date().toISOString();	}
 }
 
 /**
