@@ -63,6 +63,7 @@ let state = {
 	classId: null,
 	pollData: {},
 	boardIntervals: [],
+	currentDisplayMessage: null,
 	timerData: {
 		startTime: 0,
 		timeLeft: 0,

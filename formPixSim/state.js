@@ -1,13 +1,16 @@
 /**
- * Global application state for formPixSim
+ * Global application state
  */
 
 const fs = require('fs');
-const { io } = require('socket.io-client');
+const ws281x = require('rpi-ws281x-native');
 const { loadSounds } = require('./utils/soundUtils');
-const env = require('dotenv').config();
+const env = require('dotenv');
+const { io } = require('socket.io-client');
+env.config();
 
-// Load config
+
+// Load config from the .env
 const config = {
     formbarUrl: process.env.formbarUrl || '',
     api: process.env.api || '',
@@ -16,27 +19,34 @@ const config = {
     stripType: process.env.stripType || 'WS2812',
     barPixels: parseInt(process.env.barPixels) || 0,
     boards: parseInt(process.env.boards) || 0,
-    port: parseInt(process.env.port) || 421
+    port: parseInt(process.env.port) || 421,
+    irPin: process.env.irPin ? parseInt(process.env.irPin) : -1
 };
 
 // Constants
 const BOARD_WIDTH = 32;
 const BOARD_HEIGHT = 8;
 const REQUIRED_PERMISSION = 'auxiliary';
-const PIXELS_PER_LETTER = 5;
 
-// Initialize pixels
+// Initialize strip
 const maxPixels = config.barPixels + config.boards * BOARD_WIDTH * BOARD_HEIGHT;
-let pixels = new Uint32Array(maxPixels).fill(0x000000);
+let strip = ws281x(maxPixels, {
+	dma: 10,
+	freq: 800000,
+	gpio: config.pin,
+	invert: false,
+	brightness: config.brightness,
+	stripType: ws281x.stripType[config.stripType]
+});
 
-// Mock ws281x object for simulation
-const ws281x = {
-	render: async () => {
-		// This will be called with webIo to send to clients
-	}
-};
+// Clear pixels
+let pixels = strip.array;
+for (let i = 0; i < pixels.length; i++) {
+	pixels[i] = 0x000000;
+}
+ws281x.render();
 
-// Create socket connection
+// Initialize socket.io client connection to formbar
 const socket = io(config.formbarUrl, {
 	extraHeaders: {
 		api: config.api
@@ -47,11 +57,13 @@ const socket = io(config.formbarUrl, {
 let state = {
 	config,
 	pixels,
+	ws281x,
 	connected: false,
 	socket,
 	classId: null,
 	pollData: {},
 	boardIntervals: [],
+	currentDisplayMessage: null,
 	timerData: {
 		startTime: 0,
 		timeLeft: 0,
@@ -59,14 +71,12 @@ let state = {
 		sound: false
 	},
 	sounds: loadSounds(),
-	ws281x,
 	BOARD_WIDTH,
 	BOARD_HEIGHT,
-	REQUIRED_PERMISSION,
-	PIXELS_PER_LETTER
+	REQUIRED_PERMISSION
 };
 
-// Initialize folders
+// Initialize folders if not found
 if (!fs.existsSync('bgm')) {
 	fs.mkdirSync('bgm');
 }
