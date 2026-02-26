@@ -5,6 +5,7 @@
 const { fill, gradient } = require('../utils/pixelOps');
 const { displayBoard, getStringColumnLength } = require('../utils/displayUtils');
 const state = require('../state');
+const logger = require('../utils/logger');
 
 
 /**
@@ -39,6 +40,9 @@ function handleConnect(socket, boardIntervals) {
 	return () => {
 
 		state.connected = true
+
+		console.log(`Connected - Current class ID: ${state.classId}`);
+		logger.info(`Connected - Current class ID: ${state.classId}`);
 
 		socket.emit('getActiveClass', state.config.api);
 
