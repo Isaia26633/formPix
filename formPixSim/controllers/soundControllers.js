@@ -29,7 +29,7 @@ async function getSoundsController(req, res) {
 /**
  * POST /api/playSound - Play a sound file
  */
-async function playSoundController(req, res) {
+async function playSoundController(req, res, webIo) {
 	try {
 		// if a sound is playing already, reject the request
 		if (isPlayingSound) {
@@ -49,13 +49,22 @@ async function playSoundController(req, res) {
 			res.status(status).json({ error: sound })
 		} else if (sound == true) {
 			isPlayingSound = true;
-			// Clear the playing flag once the response has completed,
-			// so future requests are not permanently blocked.
+			
+			// Emit sound to all connected frontend clients
+			let soundPath = bgm ? `./bgm/${bgm}` : `./sfx/${sfx}`;
+			let sockets = await webIo.fetchSockets();
+			for (let socket of sockets) {
+				socket.emit('play', soundPath);
+			}
+			
+			// Reset flag after 30 seconds or when response finishes (whichever comes first)
 			const resetPlayingFlag = () => {
 				isPlayingSound = false;
 			};
 			res.once('finish', resetPlayingFlag);
 			res.once('close', resetPlayingFlag);
+			setTimeout(resetPlayingFlag, 30000); // 30 second timeout
+			
 			logger.info('Sound played successfully', { bgm, sfx });
 			res.status(200).json({ message: 'ok' })
 			
