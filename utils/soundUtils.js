@@ -60,12 +60,12 @@ function playSound({ bgm, sfx }) {
 	if (bgm) {
 		if (fs.existsSync(`./bgm/${bgm}`)) {
 			try {
-				player.play(`./bgm/${bgm}`, (err) => {
+				const proc = player.play(`./bgm/${bgm}`, (err) => {
 					if (err && !err.killed) {
 						console.error('Error playing bgm:', err.message);
 					}
 				});
-				return true
+				return proc || true
 			} catch (err) {
 				console.error('Error playing bgm:', err.message);
 				return `Error playing background music: ${err.message}`
@@ -78,12 +78,12 @@ function playSound({ bgm, sfx }) {
 	if (sfx) {
 		if (fs.existsSync(`./sfx/${sfx}`)) {
 			try {
-				player.play(`./sfx/${sfx}`, (err) => {
+				const proc = player.play(`./sfx/${sfx}`, (err) => {
 					if (err && !err.killed) {
 						console.error('Error playing sfx:', err.message);
 					}
 				});
-				return true
+				return proc || true
 			} catch (err) {
 				console.error('Error playing sfx:', err.message);
 				return `Error playing sound effect: ${err.message}`

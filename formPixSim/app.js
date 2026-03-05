@@ -71,7 +71,7 @@ app.use(checkPermissions);
 app.use(validateQueryParams);
 app.use('/api', pixelRoutes);
 app.use('/api', displayRoutes);
-app.use('/api', soundRoutes);
+app.use('/api', soundRoutes(webIo));
 app.use('/api', infoRoutes);
 
 // Main page

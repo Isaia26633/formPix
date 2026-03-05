@@ -6,7 +6,11 @@ const express = require('express');
 const router = express.Router();
 const { getSoundsController, playSoundController } = require('../controllers/soundControllers');
 
-router.get('/getSounds', getSoundsController);
-router.post('/playSound', playSoundController);
+function createSoundRoutes(webIo) {
+	router.get('/getSounds', getSoundsController);
+	router.post('/playSound', (req, res) => playSoundController(req, res, webIo));
+	
+	return router;
+}
 
-module.exports = router;
+module.exports = createSoundRoutes;
