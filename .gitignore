@@ -4,3 +4,5 @@ settings.json
 logs/
 *.env
 config.py
+*.wav
+*.mp3
