@@ -86,11 +86,14 @@ let state = {
 };
 
 // Initialize folders if not found
-if (!fs.existsSync('bgm')) {
-	fs.mkdirSync('bgm');
-}
 if (!fs.existsSync('sfx')) {
 	fs.mkdirSync('sfx');
+}
+if (!fs.existsSync('sfx/formbarSFX')) {
+	fs.mkdirSync('sfx/formbarSFX');
+}
+if (!fs.existsSync('sfx/memeSFX')) {
+	fs.mkdirSync('sfx/memeSFX');
 }
 
 module.exports = state;

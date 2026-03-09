@@ -25,7 +25,7 @@ function createSimPlayer(webIo) {
 function handleHelpSound(webIo) {
 	return async () => {
 		let player = createSimPlayer(webIo);
-		player.play('./sfx/sfx_up04.wav')
+		player.play('./sfx/formbarSFX/sfx_up04.wav')
 	}
 }
 
@@ -35,7 +35,7 @@ function handleHelpSound(webIo) {
 function handleBreakSound(webIo) {
 	return async () => {
 		let player = createSimPlayer(webIo);
-		player.play('./sfx/sfx_pickup02.wav')
+		player.play('./sfx/formbarSFX/sfx_pickup02.wav')
 	}
 }
 
@@ -45,7 +45,7 @@ function handleBreakSound(webIo) {
 function handlePollSound(webIo) {
 	return async () => {
 		let player = createSimPlayer(webIo);
-		player.play('./sfx/sfx_blip01.wav')
+		player.play('./sfx/formbarSFX/sfx_blip01.wav')
 	}
 }
 
@@ -55,7 +55,7 @@ function handlePollSound(webIo) {
 function handleRemovePollSound(webIo) {
 	return async () => {
 		let player = createSimPlayer(webIo);
-		player.play('./sfx/sfx_hit01.wav')
+		player.play('./sfx/formbarSFX/sfx_hit01.wav')
 	}
 }
 
@@ -65,7 +65,7 @@ function handleRemovePollSound(webIo) {
 function handleJoinSound(webIo) {
 	return async () => {
 		let player = createSimPlayer(webIo);
-		player.play('./sfx/sfx_up02.wav')
+		player.play('./sfx/formbarSFX/sfx_up02.wav')
 	}
 }
 
@@ -75,7 +75,7 @@ function handleJoinSound(webIo) {
 function handleLeaveSound(webIo) {
 	return async () => {
 		let player = createSimPlayer(webIo);
-		player.play('./sfx/sfx_laser01.wav')
+		player.play('./sfx/formbarSFX/sfx_laser01.wav')
 	}
 }
 
@@ -85,7 +85,7 @@ function handleLeaveSound(webIo) {
 function handleKickStudentsSound(webIo) {
 	return async () => {
 		let player = createSimPlayer(webIo);
-		player.play('./sfx/sfx_splash01.wav')
+		player.play('./sfx/formbarSFX/sfx_splash01.wav')
 	}
 }
 
@@ -95,7 +95,7 @@ function handleKickStudentsSound(webIo) {
 function handleEndClassSound(webIo) {
 	return async () => {
 		let player = createSimPlayer(webIo);
-		player.play('./sfx/sfx_explode01.wav')
+		player.play('./sfx/formbarSFX/sfx_explode01.wav')
 	}
 }
 
@@ -105,7 +105,7 @@ function handleEndClassSound(webIo) {
 function handleTimerSound(webIo) {
 	return async () => {
 		let player = createSimPlayer(webIo);
-		player.play('./sfx/alarmClock.mp3')
+		player.play('./sfx/formbarSFX/sfx_alarmclock.mp3')
 	}
 }
 
