@@ -53,15 +53,7 @@ app.use(checkConnection);
 app.use(checkPermissions);
 app.use(validateQueryParams);
 
-// Play bootup sound on first browser client connection
-let bootupPlayed = false;
-app.use((req, res, next) => {
-	if (!bootupPlayed) {
-		bootupPlayed = true;
-		playSound({ formbar: getRandomBootupSound() });
-	}
-	next();
-});
+// Routes
 
 // Routes
 app.use('/api', pixelRoutes);
@@ -109,6 +101,9 @@ socket.on('vbTimer', handleVBTimer());
 
 httpServer.listen(state.config.port, () => {
 	console.log(`Server is up and running on port: ${state.config.port}`);
+	
+	// Play bootup sound
+	playSound({ formbar: getRandomBootupSound() });
 	
 	// Initialize IR Remote (uses GPIO pin from config)
 	// Set irPin to -1 in .env to disable IR remote
