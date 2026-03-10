@@ -34,7 +34,7 @@ const {
 	handleEndClassSound,
 	handleTimerSound
 } = require('./sockets/soundHandlers');
-const { getRandomBootupSound } = require('./utils/soundUtils');
+const { getRandomBootupSound, playSound } = require('./utils/soundUtils');
 const { handleClassUpdate } = require('./sockets/pollHandlers');
 const { handleVBTimer } = require('./sockets/timerHandlers');
 
@@ -97,7 +97,7 @@ webIo.on('connection', (socket) => {
 	if (!bootupPlayed) {
 		bootupPlayed = true;
 		const bootupSound = getRandomBootupSound();
-		socket.emit('play', bootupSound);
+		playSound({ formbar: bootupSound.split('/').pop() });
 	}
 });
 
