@@ -62,6 +62,17 @@ const socket = io(config.formbarUrl, {
 	}
 });
 
+// Initialize folders if not found
+if (!fs.existsSync('sfx')) {
+	fs.mkdirSync('sfx');
+}
+if (!fs.existsSync('sfx/formbarSFX')) {
+	fs.mkdirSync('sfx/formbarSFX');
+}
+if (!fs.existsSync('sfx/memeSFX')) {
+	fs.mkdirSync('sfx/memeSFX');
+}
+
 // State
 let state = {
 	config,
@@ -84,13 +95,5 @@ let state = {
 	BOARD_HEIGHT,
 	REQUIRED_PERMISSION
 };
-
-// Initialize folders if not found
-if (!fs.existsSync('bgm')) {
-	fs.mkdirSync('bgm');
-}
-if (!fs.existsSync('sfx')) {
-	fs.mkdirSync('sfx');
-}
 
 module.exports = state;

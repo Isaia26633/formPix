@@ -64,7 +64,7 @@ function handleClassUpdate(webIo) {
 						for (let s of sockets) s.emit('play', file)
 					}
 				}
-				simPlayer.play('./sfx/snoop.wav')
+				simPlayer.play('./sfx/memeSFX/snoop.wav')
 			}
 
 			if (newPollData.totalResponses === 6 && newPollData.totalResponders === 9) {
@@ -74,7 +74,7 @@ function handleClassUpdate(webIo) {
 						for (let s of sockets) s.emit('play', file)
 					}
 				}
-				simPlayer.play('./sfx/clicknice.wav')
+				simPlayer.play('./sfx/memeSFX/noice.wav')
 			}
 
 			if (newPollData.totalResponses === 6 && newPollData.totalResponders === 7) {
@@ -84,7 +84,7 @@ function handleClassUpdate(webIo) {
 						for (let s of sockets) s.emit('play', file)
 					}
 				}
-				simPlayer.play('./sfx/brainrot.wav')
+				simPlayer.play('./sfx/memeSFX/brainrot.wav')
 			}
 
 			if (!timerData.active) {
@@ -118,7 +118,7 @@ function handleClassUpdate(webIo) {
 									for (let s of sockets) s.emit('play', file)
 								}
 							}
-							simPlayer.play('./sfx/sfx_success01.wav')
+							simPlayer.play('./sfx/formbarSFX/sfx_success01.wav')
 
 							specialDisplay = true
 							return
@@ -132,7 +132,7 @@ function handleClassUpdate(webIo) {
 									for (let s of sockets) s.emit('play', file)
 								}
 							}
-							simPlayer.play('./sfx/bruh.wav')
+							simPlayer.play('./sfx/memeSFX/bruh.wav')
 
 							let text = [
 								'Wiggle Nation: Where democracy meets indecision!',
@@ -156,7 +156,7 @@ function handleClassUpdate(webIo) {
 									for (let s of sockets) s.emit('play', file)
 								}
 							}
-							simPlayer.play('./sfx/wompwomp.wav')
+							simPlayer.play('./sfx/memeSFX/wompwomp.wav')
 							let text = [
 								'Git Gud',
 								'Skill Issue',

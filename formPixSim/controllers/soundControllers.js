@@ -16,8 +16,8 @@ async function getSoundsController(req, res) {
 		
 		let type = req.query.type
 
-		if (type == 'bgm') res.status(200).json(sounds.bgm)
-		else if (type == 'sfx') res.status(200).json(sounds.sfx)
+		if (type == 'formbar') res.status(200).json(sounds.formbarSFX)
+		else if (type == 'meme') res.status(200).json(sounds.memeSFX)
 		else if (type == null) res.status(200).json(sounds)
 		else res.status(400).json({ error: 'Invalid type' })
 	} catch (err) {
@@ -37,21 +37,21 @@ async function playSoundController(req, res, webIo) {
 			return res.status(429).json({ error: 'Another sound is already playing' });
 		}
 		
-		let { bgm, sfx } = req.query
+		let { formbar, meme } = req.query
 
-		let sound = playSound({ bgm, sfx })
+		let sound = playSound({ formbar, meme })
 
 		if (typeof sound == 'string') {
 			let status = 400
 			if (sound.endsWith(' does not exist.')) status = 404
 
-			logger.warn('Play sound failed', { error: sound, bgm, sfx });
+			logger.warn('Play sound failed', { error: sound, formbar, meme });
 			res.status(status).json({ error: sound })
 		} else if (sound == true) {
 			isPlayingSound = true;
 			
 			// Emit sound to all connected frontend clients
-			let soundPath = bgm ? `./bgm/${bgm}` : `./sfx/${sfx}`;
+			let soundPath = formbar ? `./sfx/formbarSFX/${formbar}` : `./sfx/memeSFX/${meme}`;
 			let sockets = await webIo.fetchSockets();
 			for (let socket of sockets) {
 				socket.emit('play', soundPath);
@@ -65,7 +65,7 @@ async function playSoundController(req, res, webIo) {
 			res.once('close', resetPlayingFlag);
 			setTimeout(resetPlayingFlag, 30000); // 30 second timeout
 			
-			logger.info('Sound played successfully', { bgm, sfx });
+			logger.info('Sound played successfully', { formbar, meme });
 			res.status(200).json({ message: 'ok' })
 			
 		} else res.status(500).json({ error: 'There was a server error try again' })
