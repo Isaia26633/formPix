@@ -15,8 +15,8 @@ async function getSoundsController(req, res) {
 
 		let type = req.query.type
 
-		if (type == 'bgm') res.status(200).json(sounds.bgm)
-		else if (type == 'sfx') res.status(200).json(sounds.sfx)
+		if (type == 'formbar') res.status(200).json(sounds.formbarSFX)
+		else if (type == 'meme') res.status(200).json(sounds.memeSFX)
 		else if (type == null) res.status(200).json(sounds)
 		else res.status(400).json({ source: 'Formpix', error: 'Invalid type' })
 	} catch (err) {
@@ -37,15 +37,15 @@ async function playSoundController(req, res) {
 			return res.status(429).json({ error: 'Another sound is already playing' });
 		}
 
-		let { bgm, sfx } = req.query
+		let { formbar, meme } = req.query
 
-		let sound = playSound({ bgm, sfx })
+		let sound = playSound({ formbar, meme })
 
 		if (typeof sound == 'string') {
 			let status = 400
 			if (sound.endsWith(' does not exist.')) status = 404
 
-			logger.warn('Play sound failed', { error: sound, bgm, sfx });
+			logger.warn('Play sound failed', { error: sound, formbar, meme });
 			res.status(status).json({ error: sound })
 		} else if (sound === true || (sound && typeof sound.on === 'function')) {
 			state.isPlayingSound = true;
@@ -65,7 +65,7 @@ async function playSoundController(req, res) {
 				sound.on('exit', clearIsPlayingSound);
 				sound.on('error', clearIsPlayingSound);
 			}
-			logger.info('Sound played successfully', { bgm, sfx });
+			logger.info('Sound played successfully', { formbar, meme });
 			res.status(200).json({ message: 'ok' })
 
 		} else res.status(500).json({ source: 'Formpix', error: 'There was a server error try again' })

@@ -108,10 +108,9 @@ function getSounds(type) {
 
 }
 
-function playSound(sfx, bgm) {
+function playSound(sfx) {
 	let params = new URLSearchParams({
-		sfx: sfx,
-		bgm: bgm
+		sfx: sfx
 	}).toString()
 
 	sendCommand('playSound', params, reqOptions);

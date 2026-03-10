@@ -39,7 +39,7 @@ const {
 } = require('./sockets/soundHandlers');
 const { handleClassUpdate } = require('./sockets/pollHandlers');
 const { handleVBTimer } = require('./sockets/timerHandlers');
-const { playSound } = require('./utils/soundUtils');
+const { playSound, getRandomBootupSound } = require('./utils/soundUtils');
 
 // ============================================================================
 // EXPRESS SETUP
@@ -52,6 +52,8 @@ const httpServer = http.createServer(app);
 app.use(checkConnection);
 app.use(checkPermissions);
 app.use(validateQueryParams);
+
+// Routes
 
 // Routes
 app.use('/api', pixelRoutes);
@@ -99,7 +101,9 @@ socket.on('vbTimer', handleVBTimer());
 
 httpServer.listen(state.config.port, () => {
 	console.log(`Server is up and running on port: ${state.config.port}`);
-	playSound({ sfx: 'bootup02.wav' });
+	
+	// Play bootup sound
+	playSound({ formbar: getRandomBootupSound() });
 	
 	// Initialize IR Remote (uses GPIO pin from config)
 	// Set irPin to -1 in .env to disable IR remote

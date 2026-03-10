@@ -59,15 +59,15 @@ function handleClassUpdate() {
 		}
 
 		if (newPollData.totalResponses === 6 && newPollData.totalResponders === 9) {
-			if (player) player.play('./sfx/clicknice.wav')
+			if (player) player.play('./sfx/memeSFX/noice.wav')
 		}
 
 		if (newPollData.totalResponses === 6 && newPollData.totalResponders === 7) {
-			if (player) player.play('./sfx/brainrot.wav')
+			if (player) player.play('./sfx/memeSFX/brainrot.wav')
 		}
 
 		if (newPollData.totalResponses === 4 && newPollData.totalResponders === 20) {
-			if (player) player.play('./sfx/snoop.wav')
+			if (player) player.play('./sfx/memeSFX/snoop.wav')
 		}			if (!timerData.active) {
 				fill(pixels, 0x808080, 0, config.barPixels)
 
@@ -92,7 +92,7 @@ function handleClassUpdate() {
 							if (!display) return
 							boardIntervals.push(display)
 
-							playSound({ sfx: 'sfx_success01.wav' });
+playSound({ formbar: 'sfx_success01.wav' });
 
 							specialDisplay = true
 							return
@@ -100,7 +100,7 @@ function handleClassUpdate() {
 
 						const wiggleResponse = findResponse('Wiggle')
 						if (wiggleResponse && wiggleResponse.responses == newPollData.totalResponders) {
-							playSound({ sfx: 'bruh.wav' });
+							playSound({ meme: 'bruh.wav' });
 
 							let text = [
 								'Wiggle Nation: Where democracy meets indecision!',
@@ -118,7 +118,7 @@ function handleClassUpdate() {
 
 						const downResponse = findResponse('Down')
 						if (downResponse && downResponse.responses == newPollData.totalResponders) {
-							playSound({ sfx: 'wompwomp.wav' });
+							playSound({ meme: 'wompwomp.wav' });
 							let display = displayBoard(pixels, 'Git Gud', 0xFF0000, 0x000000, config, boardIntervals, ws281x)
 							if (!display) return
 							boardIntervals.push(display)
@@ -155,21 +155,29 @@ function handleClassUpdate() {
 						let color = poll.color
 						if (blind) color = 0xFF8000
 
-						fill(pixels, color, currentPixel, pixelsPerStudent)
-						currentPixel += pixelsPerStudent
+						let pixelsToFill = Math.min(pixelsPerStudent, config.barPixels - currentPixel)
+
+						if (pixelsToFill <= 0) break
+
+						fill(pixels, color, currentPixel, pixelsToFill)
+						currentPixel += pixelsToFill
 
 						if (
 							responseNumber < poll.responses - 1 ||
 							pollNumber < nonEmptyPolls
 						) {
-							pixels[currentPixel] = 0xFF0080
+							if (currentPixel < config.barPixels) {
+								pixels[currentPixel] = 0xFF0080
+							}
 						}
 					}
 
 					if (
 						!blind &&
 						poll.responses > 0
-					) currentPixel++
+					) {
+						if (currentPixel < config.barPixels) currentPixel++
+					}
 					pollNumber++
 				}
 			}
@@ -178,7 +186,9 @@ function handleClassUpdate() {
 				text = `${newPollData.totalResponses}/${newPollData.totalResponders} `
 				if (newPollData.prompt) pollText = newPollData.prompt
 
-				fill(pixels, 0x000000, config.barPixels + getStringColumnLength(text + pollText) * 8)
+				const boardStartPixel = config.barPixels
+				const boardLength = config.boards * 32 * 8
+				fill(pixels, 0x000000, boardStartPixel, boardLength)
 
 				let display = displayBoard(pixels, text, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
 				if (display) boardIntervals.push(display)

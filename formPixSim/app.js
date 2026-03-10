@@ -34,6 +34,7 @@ const {
 	handleEndClassSound,
 	handleTimerSound
 } = require('./sockets/soundHandlers');
+const { getRandomBootupSound, playSound } = require('./utils/soundUtils');
 const { handleClassUpdate } = require('./sockets/pollHandlers');
 const { handleVBTimer } = require('./sockets/timerHandlers');
 
@@ -48,7 +49,6 @@ const webIo = require('socket.io')(httpServer);
 // Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/static'));
-app.use('/bgm', express.static(__dirname + '/bgm'));
 app.use('/sfx', express.static(__dirname + '/sfx'));
 
 
@@ -71,7 +71,7 @@ app.use(checkPermissions);
 app.use(validateQueryParams);
 app.use('/api', pixelRoutes);
 app.use('/api', displayRoutes);
-app.use('/api', soundRoutes);
+app.use('/api', soundRoutes(webIo));
 app.use('/api', infoRoutes);
 
 // Main page
@@ -91,8 +91,14 @@ app.use(handle404);
 // SOCKET.IO SETUP (WebSocket for browser clients)
 // ============================================================================
 
+let bootupPlayed = false;
 webIo.on('connection', (socket) => {
 	console.log('Browser client connected');
+	if (!bootupPlayed) {
+		bootupPlayed = true;
+		const bootupSound = getRandomBootupSound();
+		playSound({ formbar: bootupSound.split('/').pop() });
+	}
 });
 
 // ============================================================================

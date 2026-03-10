@@ -16,8 +16,8 @@ async function getSoundsController(req, res) {
 		
 		let type = req.query.type
 
-		if (type == 'bgm') res.status(200).json(sounds.bgm)
-		else if (type == 'sfx') res.status(200).json(sounds.sfx)
+		if (type == 'formbar') res.status(200).json(sounds.formbarSFX)
+		else if (type == 'meme') res.status(200).json(sounds.memeSFX)
 		else if (type == null) res.status(200).json(sounds)
 		else res.status(400).json({ error: 'Invalid type' })
 	} catch (err) {
@@ -29,7 +29,7 @@ async function getSoundsController(req, res) {
 /**
  * POST /api/playSound - Play a sound file
  */
-async function playSoundController(req, res) {
+async function playSoundController(req, res, webIo) {
 	try {
 		// if a sound is playing already, reject the request
 		if (isPlayingSound) {
@@ -37,26 +37,35 @@ async function playSoundController(req, res) {
 			return res.status(429).json({ error: 'Another sound is already playing' });
 		}
 		
-		let { bgm, sfx } = req.query
+		let { formbar, meme } = req.query
 
-		let sound = playSound({ bgm, sfx })
+		let sound = playSound({ formbar, meme })
 
 		if (typeof sound == 'string') {
 			let status = 400
 			if (sound.endsWith(' does not exist.')) status = 404
 
-			logger.warn('Play sound failed', { error: sound, bgm, sfx });
+			logger.warn('Play sound failed', { error: sound, formbar, meme });
 			res.status(status).json({ error: sound })
 		} else if (sound == true) {
 			isPlayingSound = true;
-			// Clear the playing flag once the response has completed,
-			// so future requests are not permanently blocked.
+			
+			// Emit sound to all connected frontend clients
+			let soundPath = formbar ? `./sfx/formbarSFX/${formbar}` : `./sfx/memeSFX/${meme}`;
+			let sockets = await webIo.fetchSockets();
+			for (let socket of sockets) {
+				socket.emit('play', soundPath);
+			}
+			
+			// Reset flag after 30 seconds or when response finishes (whichever comes first)
 			const resetPlayingFlag = () => {
 				isPlayingSound = false;
 			};
 			res.once('finish', resetPlayingFlag);
 			res.once('close', resetPlayingFlag);
-			logger.info('Sound played successfully', { bgm, sfx });
+			setTimeout(resetPlayingFlag, 30000); // 30 second timeout
+			
+			logger.info('Sound played successfully', { formbar, meme });
 			res.status(200).json({ message: 'ok' })
 			
 		} else res.status(500).json({ error: 'There was a server error try again' })

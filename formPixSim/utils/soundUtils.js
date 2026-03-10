@@ -7,27 +7,27 @@ const fs = require('fs');
 /**
  * This function plays a sound file based on the provided parameters.
  * @param {Object} options - The options for playing sound.
- * @param {string} options.bgm - The filename of the background music to play.
- * @param {string} options.sfx - The filename of the sound effect to play.
+ * @param {string} options.formbar - The filename of a formbar sound effect (in formbarSFX/).
+ * @param {string} options.meme - The filename of a meme sound effect (in memeSFX/).
  * @returns {boolean|string} - Returns true if successful, otherwise an error message.
  */
-function playSound({ bgm, sfx }) {
-	if (!bgm && !sfx) return 'Missing bgm or sfx'
-	if (bgm && sfx) return 'You can not send both bgm and sfx'
+function playSound({ formbar, meme }) {
+	if (!formbar && !meme) return 'Missing formbar or meme'
+	if (formbar && meme) return 'You cannot send both formbar and meme'
 
-	if (bgm) {
-		if (fs.existsSync(`./bgm/${bgm}`)) {
+	if (formbar) {
+		if (fs.existsSync(`./sfx/formbarSFX/${formbar}`)) {
 			return true
 		} else {
-			return `The background music ${bgm} does not exist.`
+			return `The sound effect ${formbar} does not exist.`
 		}
 	}
 
-	if (sfx) {
-		if (fs.existsSync(`./sfx/${sfx}`)) {
+	if (meme) {
+		if (fs.existsSync(`./sfx/memeSFX/${meme}`)) {
 			return true
 		} else {
-			return `The sound effect ${sfx} does not exist.`
+			return `The sound effect ${meme} does not exist.`
 		}
 	}
 
@@ -36,16 +36,27 @@ function playSound({ bgm, sfx }) {
 
 /**
  * Load all sounds from directories
- * @returns {Object} Object with bgm and sfx arrays
+ * @returns {Object} Object with formbar and meme arrays
  */
 function loadSounds() {
 	return {
-		bgm: fs.readdirSync('./bgm'),
-		sfx: fs.readdirSync('./sfx')
+		formbarSFX: fs.readdirSync('./sfx/formbarSFX'),
+		memeSFX: fs.readdirSync('./sfx/memeSFX')
 	};
+}
+
+/**
+ * Pick a random bootup sound from the two available
+ * @returns {string} Path to a bootup sound
+ */
+function getRandomBootupSound() {
+	const bootupSounds = ['sfx_bootup01.wav', 'sfx_bootup02.wav'];
+	const pick = bootupSounds[Math.floor(Math.random() * bootupSounds.length)];
+	return `./sfx/formbarSFX/${pick}`;
 }
 
 module.exports = {
 	playSound,
-	loadSounds
+	loadSounds,
+	getRandomBootupSound
 };
