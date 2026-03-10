@@ -47,49 +47,49 @@ if (commandExists('omxplayer')) {
 /**
  * This function plays a sound file based on the provided parameters.
  * @param {Object} options - The options for playing sound.
- * @param {string} options.bgm - The filename of the background music to play.
- * @param {string} options.sfx - The filename of the sound effect to play.
+ * @param {string} options.formbar - The filename of a formbar sound effect (in formbarSFX/).
+ * @param {string} options.meme - The filename of a meme sound effect (in memeSFX/).
  * @returns {boolean|string} - Returns true if successful, otherwise an error message.
  */
-function playSound({ bgm, sfx }) {
+function playSound({ formbar, meme }) {
 	if (!player) return 'Audio player not available - no compatible player found'
-	
-	if (!bgm && !sfx) return 'Missing bgm or sfx'
-	if (bgm && sfx) return 'You can not send both bgm and sfx'
 
-	if (bgm) {
-		if (fs.existsSync(`./bgm/${bgm}`)) {
+	if (!formbar && !meme) return 'Missing formbar or meme'
+	if (formbar && meme) return 'You cannot send both formbar and meme'
+
+	if (formbar) {
+		if (fs.existsSync(`./sfx/formbarSFX/${formbar}`)) {
 			try {
-				const proc = player.play(`./bgm/${bgm}`, (err) => {
+				const proc = player.play(`./sfx/formbarSFX/${formbar}`, (err) => {
 					if (err && !err.killed) {
-						console.error('Error playing bgm:', err.message);
+						console.error('Error playing formbar sound:', err.message);
 					}
 				});
 				return proc || true
 			} catch (err) {
-				console.error('Error playing bgm:', err.message);
-				return `Error playing background music: ${err.message}`
+				console.error('Error playing formbar sound:', err.message);
+				return `Error playing formbar sound: ${err.message}`
 			}
 		} else {
-			return `The background music ${bgm} does not exist.`
+			return `The sound effect ${formbar} does not exist.`
 		}
 	}
 
-	if (sfx) {
-		if (fs.existsSync(`./sfx/${sfx}`)) {
+	if (meme) {
+		if (fs.existsSync(`./sfx/memeSFX/${meme}`)) {
 			try {
-				const proc = player.play(`./sfx/${sfx}`, (err) => {
+				const proc = player.play(`./sfx/memeSFX/${meme}`, (err) => {
 					if (err && !err.killed) {
-						console.error('Error playing sfx:', err.message);
+						console.error('Error playing meme sound:', err.message);
 					}
 				});
 				return proc || true
 			} catch (err) {
-				console.error('Error playing sfx:', err.message);
-				return `Error playing sound effect: ${err.message}`
+				console.error('Error playing meme sound:', err.message);
+				return `Error playing meme sound: ${err.message}`
 			}
 		} else {
-			return `The sound effect ${sfx} does not exist.`
+			return `The sound effect ${meme} does not exist.`
 		}
 	}
 
@@ -98,17 +98,27 @@ function playSound({ bgm, sfx }) {
 
 /**
  * Load all sounds from directories
- * @returns {Object} Object with bgm and sfx arrays
+ * @returns {Object} Object with formbarSFX and memeSFX arrays
  */
 function loadSounds() {
 	return {
-		bgm: fs.readdirSync('./bgm'),
-		sfx: fs.readdirSync('./sfx')
+		formbarSFX: fs.readdirSync('./sfx/formbarSFX'),
+		memeSFX: fs.readdirSync('./sfx/memeSFX')
 	};
+}
+
+/**
+ * Pick a random bootup sound from the two available
+ * @returns {string} Filename of a bootup sound
+ */
+function getRandomBootupSound() {
+	const bootupSounds = ['sfx_bootup01.wav', 'sfx_bootup02.wav'];
+	return bootupSounds[Math.floor(Math.random() * bootupSounds.length)];
 }
 
 module.exports = {
 	playSound,
 	loadSounds,
+	getRandomBootupSound,
 	player
 };
