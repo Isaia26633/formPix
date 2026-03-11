@@ -3,7 +3,7 @@
  */
 
 const fs = require('fs');
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
 
 // Helper function to check if a command exists
 function commandExists(cmd) {
@@ -45,55 +45,73 @@ if (commandExists('omxplayer')) {
 }
 
 /**
+ * Convert a volume percentage (0–100) to player-specific command-line arguments.
+ * @param {number} volume - Volume level from 0 to 100.
+ * @returns {string[]} Extra args to prepend before the filename.
+ */
+function getVolumeArgs(volume) {
+	if (playerType === 'omxplayer') {
+		// omxplayer --vol takes millibels (100ths of a decibel); 0 = no change
+		const millibels = volume <= 0 ? -9999 : Math.round(2000 * Math.log10(volume / 100));
+		return ['--vol', String(millibels)];
+	} else if (playerType === 'vlc') {
+		// cvlc --gain takes a float multiplier where 1.0 = 100%
+		return ['--gain', (volume / 100).toFixed(2)];
+	}
+	return [];
+}
+
+/**
  * This function plays a sound file based on the provided parameters.
  * @param {Object} options - The options for playing sound.
  * @param {string} options.formbar - The filename of a formbar sound effect (in formbarSFX/).
  * @param {string} options.meme - The filename of a meme sound effect (in memeSFX/).
- * @returns {boolean|string} - Returns true if successful, otherwise an error message.
+ * @param {number} [options.volume=100] - Playback volume as a percentage (0–100). Supported with omxplayer and cvlc.
+ * @returns {ChildProcess|boolean|string} - Returns the child process if successful, true for default player, otherwise an error message.
  */
-function playSound({ formbar, meme }) {
+function playSound({ formbar, meme, volume = 100 }) {
 	if (!player) return 'Audio player not available - no compatible player found'
 
 	if (!formbar && !meme) return 'Missing formbar or meme'
 	if (formbar && meme) return 'You cannot send both formbar and meme'
 
-	if (formbar) {
-		if (fs.existsSync(`./sfx/formbarSFX/${formbar}`)) {
-			try {
-				const proc = player.play(`./sfx/formbarSFX/${formbar}`, (err) => {
-					if (err && !err.killed) {
-						console.error('Error playing formbar sound:', err.message);
-					}
-				});
-				return proc || true
-			} catch (err) {
-				console.error('Error playing formbar sound:', err.message);
-				return `Error playing formbar sound: ${err.message}`
-			}
-		} else {
-			return `The sound effect ${formbar} does not exist.`
-		}
+	const filePath = formbar ? `./sfx/formbarSFX/${formbar}` : `./sfx/memeSFX/${meme}`;
+	const soundName = formbar || meme;
+	const soundType = formbar ? 'formbar' : 'meme';
+
+	if (!fs.existsSync(filePath)) {
+		return `The sound effect ${soundName} does not exist.`
 	}
 
-	if (meme) {
-		if (fs.existsSync(`./sfx/memeSFX/${meme}`)) {
-			try {
-				const proc = player.play(`./sfx/memeSFX/${meme}`, (err) => {
-					if (err && !err.killed) {
-						console.error('Error playing meme sound:', err.message);
-					}
-				});
-				return proc || true
-			} catch (err) {
-				console.error('Error playing meme sound:', err.message);
-				return `Error playing meme sound: ${err.message}`
-			}
-		} else {
-			return `The sound effect ${meme} does not exist.`
-		}
-	}
+	// Clamp volume between 0 and 100
+	const clampedVolume = Math.max(0, Math.min(100, Number(volume) || 100));
 
-	return 'Unknown error'
+	try {
+		// Use spawn directly when volume is not 100% and the player supports it
+		if (clampedVolume !== 100 && (playerType === 'omxplayer' || playerType === 'vlc')) {
+			const playerCmd = playerType === 'omxplayer' ? 'omxplayer' : 'cvlc';
+			const volumeArgs = getVolumeArgs(clampedVolume);
+			const playerArgs = playerType === 'vlc'
+				? [...volumeArgs, '--play-and-exit', filePath]
+				: [...volumeArgs, filePath];
+			const proc = spawn(playerCmd, playerArgs, { stdio: 'ignore', detached: false });
+			proc.on('error', (err) => {
+				console.error(`Error spawning ${playerCmd}:`, err.message);
+			});
+			return proc;
+		}
+
+		// Fall back to play-sound for the default player or when volume is 100
+		const proc = player.play(filePath, (err) => {
+			if (err && !err.killed) {
+				console.error(`Error playing ${soundType} sound:`, err.message);
+			}
+		});
+		return proc || true;
+	} catch (err) {
+		console.error(`Error playing ${soundType} sound:`, err.message);
+		return `Error playing ${soundType} sound: ${err.message}`;
+	}
 }
 
 /**

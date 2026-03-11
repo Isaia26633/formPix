@@ -37,9 +37,19 @@ async function playSoundController(req, res) {
 			return res.status(429).json({ error: 'Another sound is already playing' });
 		}
 
-		let { formbar, meme } = req.query
+		let { formbar, meme, volume } = req.query
 
-		let sound = playSound({ formbar, meme })
+		// Parse and validate volume (0–100). Defaults to 75 so API sounds are quieter than system sounds.
+		let parsedVolume = 75;
+		if (volume !== undefined) {
+			parsedVolume = parseInt(volume);
+			if (isNaN(parsedVolume) || parsedVolume < 0 || parsedVolume > 100) {
+				logger.warn('Invalid volume parameter', { volume });
+				return res.status(400).json({ source: 'Formpix', error: 'volume must be an integer between 0 and 100' });
+			}
+		}
+
+		let sound = playSound({ formbar, meme, volume: parsedVolume })
 
 		if (typeof sound == 'string') {
 			let status = 400
