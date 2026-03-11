@@ -79,10 +79,14 @@
 				}
 			})
 
-			socket.on('play', (string) => {
-				console.log(string);
+			socket.on('play', (data) => {
+				// data can be a plain string (legacy socket sounds) or { path, volume }
+				const soundPath = typeof data === 'object' ? data.path : data;
+				const soundVolume = typeof data === 'object' ? data.volume : 100;
+				console.log(soundPath, soundVolume);
 
-				audio.src = string
+				audio.src = soundPath
+				audio.volume = Math.max(0, Math.min(1, soundVolume / 100));
 				audio.play()
 			})
 		</script>

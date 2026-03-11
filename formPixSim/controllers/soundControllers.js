@@ -37,9 +37,19 @@ async function playSoundController(req, res, webIo) {
 			return res.status(429).json({ error: 'Another sound is already playing' });
 		}
 		
-		let { formbar, meme } = req.query
+		let { formbar, meme, volume } = req.query
 
-		let sound = playSound({ formbar, meme })
+		// Parse and validate volume (0–100). Defaults to 75 so API sounds are quieter than system sounds.
+		let parsedVolume = 75;
+		if (volume !== undefined) {
+			parsedVolume = parseInt(volume);
+			if (isNaN(parsedVolume) || parsedVolume < 0 || parsedVolume > 100) {
+				logger.warn('Invalid volume parameter', { volume });
+				return res.status(400).json({ error: 'volume must be an integer between 0 and 100' });
+			}
+		}
+
+		let sound = playSound({ formbar, meme, volume: parsedVolume })
 
 		if (typeof sound == 'string') {
 			let status = 400
@@ -47,14 +57,13 @@ async function playSoundController(req, res, webIo) {
 
 			logger.warn('Play sound failed', { error: sound, formbar, meme });
 			res.status(status).json({ error: sound })
-		} else if (sound == true) {
+		} else if (sound && typeof sound === 'object' && sound.path) {
 			isPlayingSound = true;
 			
-			// Emit sound to all connected frontend clients
-			let soundPath = formbar ? `./sfx/formbarSFX/${formbar}` : `./sfx/memeSFX/${meme}`;
+			// Emit sound and volume to all connected frontend clients
 			let sockets = await webIo.fetchSockets();
 			for (let socket of sockets) {
-				socket.emit('play', soundPath);
+				socket.emit('play', { path: sound.path, volume: sound.volume });
 			}
 			
 			// Reset flag after 30 seconds or when response finishes (whichever comes first)
