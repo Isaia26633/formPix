@@ -118,11 +118,10 @@ playSound({ formbar: 'sfx_success01.wav' });
 
 						const downResponse = findResponse('Down')
 						if (downResponse && downResponse.responses == newPollData.totalResponders) {
-							playSound({ meme: 'wompwomp.wav' });
+							playSound({ meme: 'womp-womp.wav' });
 							let display = displayBoard(pixels, 'Git Gud', 0xFF0000, 0x000000, config, boardIntervals, ws281x)
 							if (!display) return
 							boardIntervals.push(display)
-
 							specialDisplay = true
 						}
 					}
