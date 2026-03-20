@@ -6,10 +6,15 @@ Comprehensive performance bottleneck analysis with organized fixes, priorities, 
 
 ## 🚀 Quick Start
 
-**Top 3 Fixes (70% of gains):**
-1. **Gamma LUT** – Replace `Math.pow` with lookup table → 40-60% CPU savings
-2. **HSV Cache** – Memoize HSV→RGB in rave → 50-70% CPU savings  
-3. **Progress Buffer** – Pre-compute background gradient → 20-30% CPU savings
+**Already implemented (keep measured):**
+1. **Gamma LUT ✅** – `utils/pixelOps.js` now uses a 256-entry lookup table instead of `Math.pow` in hot paths.
+2. **Progress Buffer ✅** – `controllers/pixelControllers.js` pre-computes the background gradient into a buffer and copies with `Uint32Array.set`.
+3. **String Render ✅** – `utils/displayUtils.js` avoids `structuredClone`, hoists imports, and reuses board buffers.
+
+**Remaining top fixes (current focus):**
+1. **HSV Cache** – Further reduce HSV→RGB work in rave (especially non-`s=1` / non-`v=1` cases) → 50-70% CPU savings potential  
+2. **Mode Dispatch** – Replace per-frame string checks with a dispatch table in rave  
+3. **Deep Equality & Array Cleanup** – Tighten poll equality checks and in-place interval cleanup
 
 **Profiling:** `node --prof app.js` → `node --prof-process isolate-*.log | head -50`  
 **Real-time:** `clinic flame -- node app.js`
@@ -48,9 +53,9 @@ Comprehensive performance bottleneck analysis with organized fixes, priorities, 
 
 | Issue | Impact | Effort | ROI | File |
 |-------|--------|--------|-----|------|
-| Gamma LUT | 🔴 Critical | 1h | **10/10** | `utils/pixelOps.js` |
+| Gamma LUT (DONE) | 🔴 Critical | 1h | **10/10** | `utils/pixelOps.js` |
 | HSV Cache | 🔴 Critical | 1.5h | **10/10** | `controllers/raveControllers.js` |
-| Progress Buffer | 🔴 Critical | 1.5h | **9/10** | `controllers/pixelControllers.js` |
+| Progress Buffer (DONE) | 🔴 Critical | 1.5h | **9/10** | `controllers/pixelControllers.js` |
 | String Render | 🟠 High | 2h | 8/10 | `utils/displayUtils.js` |
 | Mode Dispatch | 🟠 High | 1.5h | 8/10 | `controllers/raveControllers.js` |
 | State Consolidation | 🟡 Med | 1.5h | 7/10 | Multiple |
@@ -63,9 +68,9 @@ Comprehensive performance bottleneck analysis with organized fixes, priorities, 
 
 | File | Count | Issue Types |
 |------|-------|------------|
-| `controllers/raveControllers.js` | 4 | HSV, mode dispatch, random, hue offset |
-| `utils/pixelOps.js` | 2 | Gamma pow, gradient require |
-| `controllers/pixelControllers.js` | 2 | Progress buffer, Color parsing |
+| `controllers/raveControllers.js` | 4 | HSV (partially cached), mode dispatch, random, hue offset |
+| `utils/pixelOps.js` | 2 | Gamma LUT (DONE), gradient LUT (DONE) |
+| `controllers/pixelControllers.js` | 2 | Progress buffer (DONE), Color parsing |
 | `sockets/pollHandlers.js` | 2 | Deep equality, random array pick |
 | `controllers/displayControllers.js` | 2 | Color parsing, state mutation |
 | `utils/displayUtils.js` | 2 | structuredClone, inline require |
