@@ -3,6 +3,7 @@
  */
 
 const { letters } = require ('../letters');
+const { fill } = require('./pixelOps');
 
 const PIXELS_PER_LETTER = 5;
 const BOARD_HEIGHT = 8;
@@ -18,31 +19,24 @@ const BOARD_HEIGHT = 8;
  * @param {Uint32Array} pixels - The pixels array
  */
 function showString(boardPixels, startFrame, textColor, backgroundColor, pixels, startPixel, endPixel) {
-	const { fill } = require('./pixelOps');
-	
-	let newBoardPixels = structuredClone(boardPixels);
 	let currentPixel = startPixel;
 	let currentColumn = startFrame;
-	let maxColumns = newBoardPixels.length;
-
-	fill(pixels, 0x000000, startPixel, endPixel - startPixel);
-
-	for (let i = 0; i < newBoardPixels.length; i++) {
-		if (startFrame % 2 === i % 2) {
-			newBoardPixels[i] = newBoardPixels[i].reverse();
-		}
-	}
+	const maxColumns = boardPixels.length;
 
 	for (let i = 0; i < maxColumns; i++) {
-		let col = newBoardPixels[currentColumn];
+		const colIndex = currentColumn;
+		const col = boardPixels[colIndex];
+		const reverse = (startFrame % 2 === colIndex % 2);
 
-		for (let pixel of col) {
-			pixels[currentPixel] = pixel ? textColor : backgroundColor;
+		for (let row = 0; row < BOARD_HEIGHT; row++) {
+			const sourceRow = reverse ? (BOARD_HEIGHT - 1 - row) : row;
+			const pixelOn = col[sourceRow];
+			pixels[currentPixel] = pixelOn ? textColor : backgroundColor;
 			currentPixel++;
 
-			if (currentPixel >= endPixel) return
+			if (currentPixel >= endPixel) return;
 		}
-		currentColumn = (currentColumn + 1) % newBoardPixels.length;
+		currentColumn = (currentColumn + 1) % maxColumns;
 	}
 }
 
@@ -123,7 +117,6 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 	}
 
 	// Clear overlapping intervals by mutating the array in place
-	const { fill } = require('./pixelOps');
 	for (let i = boardIntervals.length - 1; i >= 0; i--) {
 		let boardInterval = boardIntervals[i];
 		if (
@@ -161,12 +154,19 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 		}
 
 		let startFrame = 0;
+		let lastFrameTime = Date.now();
 
 		return {
 			string,
 			interval: setInterval(() => {
+				const now = Date.now();
+				let delta = now - lastFrameTime;
+				lastFrameTime = now;
+				if (!delta || delta < 0) delta = scroll;
+				const frameStep = Math.max(1, Math.round(delta / scroll));
+
 				showString(boardPixels, startFrame, textColor, backgroundColor, pixels, startPixel, endPixel);
-				startFrame = (startFrame + 1) % boardPixels.length;
+				startFrame = (startFrame + frameStep) % boardPixels.length;
 				ws281x.render();
 			}, scroll),
 			startColumn,

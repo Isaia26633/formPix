@@ -2,6 +2,29 @@
  * Pixel operations - fill and gradient functions
  */
 
+const { hexToRgb } = require('./colorUtils');
+
+const GAMMA = 2.8;
+
+// Precomputed gamma correction lookup table for 0-255 channel values.
+// This keeps the sim behaviour consistent with the main app while
+// avoiding per-channel Math.pow in inner loops.
+const GAMMA_LUT = (() => {
+	const table = new Array(256);
+	for (let i = 0; i < 256; i++) {
+		table[i] = Math.round(Math.pow(i / 255.0, GAMMA) * 255);
+	}
+	return table;
+})();
+
+function gammaCorrect(value) {
+	let v = value;
+	if (v < 0) v = 0;
+	else if (v > 255) v = 255;
+	v = v | 0;
+	return GAMMA_LUT[v];
+}
+
 /**
  * Fills a portion of the pixels array with a specified color.
  * @param {Uint32Array} pixels - The pixels array
@@ -26,30 +49,27 @@ function fill(pixels, color, start = 0, length = pixels.length) {
  * @param {number} [length=pixels.length] - The length of the gradient.
  */
 function gradient(pixels, startColor, endColor, start = 0, length = pixels.length) {
-	const { hexToRgb, rgbToHex } = require('./colorUtils');
-	
-	startColor = hexToRgb(startColor)
-	endColor = hexToRgb(endColor)
+	const startRgb = hexToRgb(startColor);
+	const endRgb = hexToRgb(endColor);
 
-	let currentColor = startColor
+	length = Math.floor(length);
+	if (start + length > pixels.length) length = pixels.length - start;
+	if (length <= 0) return;
 
-	length = Math.floor(length)
-	if (start + length > pixels.length) length = pixels.length - start
-
-	let stepColor = length > 1 ? startColor.map((start, i) => (endColor[i] - start) / (length - 1)) : [0, 0, 0]
+	const rStep = length > 1 ? (endRgb[0] - startRgb[0]) / (length - 1) : 0;
+	const gStep = length > 1 ? (endRgb[1] - startRgb[1]) / (length - 1) : 0;
+	const bStep = length > 1 ? (endRgb[2] - startRgb[2]) / (length - 1) : 0;
 
 	for (let i = 0; i < length; i++) {
-		currentColor = [
-			Math.round(startColor[0] + stepColor[0] * i),
-			Math.round(startColor[1] + stepColor[1] * i),
-			Math.round(startColor[2] + stepColor[2] * i)
-		]
-
-		pixels[i + start] = rgbToHex(currentColor)
+		const r = gammaCorrect(Math.round(startRgb[0] + rStep * i));
+		const g = gammaCorrect(Math.round(startRgb[1] + gStep * i));
+		const b = gammaCorrect(Math.round(startRgb[2] + bStep * i));
+		pixels[i + start] = (r << 16) | (g << 8) | b;
 	}
 }
 
 module.exports = {
 	fill,
-	gradient
+	gradient,
+	gammaCorrect
 };
