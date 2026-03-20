@@ -125,9 +125,10 @@ playSound({ formbar: 'sfx_success01.wav' });
 						if (downResponse && downResponse.responses == newPollData.totalResponders) {
 							playSound({ meme: 'womp-womp.wav' });
 							let text = [
-								'Git Gud',
+								'Git Gud lol',
 								'Skill Issue',
-								'Guh, Buh, Fluh'
+								'Guh, Buh, Fluh, do better',
+								'Imagine getting all downs, could never be me'
 							]
 							let display = displayBoard(pixels, text, 0xFF0000, 0x000000, config, boardIntervals, ws281x)
 							if (!display) return
