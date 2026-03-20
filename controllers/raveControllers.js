@@ -86,7 +86,14 @@ async function raveController(req, res) {
 		// Import fill function
 		const { fill } = require('../utils/pixelOps');
 
+		let lastFrameTime = Date.now();
+
 		currentRaveInterval = setInterval(() => {
+			const now = Date.now();
+			let delta = now - lastFrameTime;
+			lastFrameTime = now;
+			if (!delta || delta < 0) delta = intervalTiming;
+			const offsetStep = Math.max(1, Math.round(delta / intervalTiming));
 			if (mode === 'rainbow') {
 				// Rainbow wave effect
 				for (let i = 0; i < barLength; i++) {
@@ -380,7 +387,7 @@ async function raveController(req, res) {
 				}
 			}
 
-			offset++;
+			offset += offsetStep;
 			ws281x.render();
 		}, intervalTiming);
 

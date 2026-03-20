@@ -310,7 +310,7 @@ async function fillController(req, res) {
 		logger.info('API Call: /api/fill', { query: req.query });
 		const { pixels, config, ws281x } = require('../state');
 
-		let { color, start = 0, length = pixels.length } = req.query
+		let { color, start = 0, length = config.barPixels } = req.query
 
 		color = textToHexColor(color)
 
@@ -331,6 +331,17 @@ async function fillController(req, res) {
 
 		start = Number(start)
 		length = Number(length)
+
+		const barLength = config.barPixels;
+		if (start < 0) start = 0;
+		if (start >= barLength) {
+			res.status(400).json({ error: 'start must be within barPixels' });
+			return;
+		}
+		if (length < 0) length = 0;
+		if (start + length > barLength) {
+			length = barLength - start;
+		}
 
 		fill(pixels, color, start, length)
 		ws281x.render()

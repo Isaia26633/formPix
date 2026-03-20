@@ -154,12 +154,19 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 		}
 
 		let startFrame = 0;
+		let lastFrameTime = Date.now();
 
 		return {
 			string,
 			interval: setInterval(() => {
+				const now = Date.now();
+				let delta = now - lastFrameTime;
+				lastFrameTime = now;
+				if (!delta || delta < 0) delta = scroll;
+				const frameStep = Math.max(1, Math.round(delta / scroll));
+
 				showString(boardPixels, startFrame, textColor, backgroundColor, pixels, startPixel, endPixel);
-				startFrame = (startFrame + 1) % boardPixels.length;
+				startFrame = (startFrame + frameStep) % boardPixels.length;
 				ws281x.render();
 			}, scroll),
 			startColumn,
