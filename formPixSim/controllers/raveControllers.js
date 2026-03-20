@@ -6,6 +6,61 @@ const logger = require('../utils/logger');
 
 let currentRaveInterval = null;
 
+const HUE_LUT_STEP = 5;
+const HUE_LUT_SIZE = Math.floor(360 / HUE_LUT_STEP);
+const HUE_LUT = Array.from({ length: HUE_LUT_SIZE }, (_, i) => {
+	const hue = i * HUE_LUT_STEP;
+	return calculateHsvToRgb(hue, 1, 1);
+});
+const HSV_CACHE = new Map();
+const HSV_CACHE_LIMIT = 4096;
+
+function normalizeHue(h) {
+	h = h % 360;
+	if (h < 0) h += 360;
+	return h;
+}
+
+function hueLutToRgb(h, v) {
+	const normalizedHue = normalizeHue(h);
+	const lutIndex = Math.floor(normalizedHue / HUE_LUT_STEP) % HUE_LUT_SIZE;
+	const base = HUE_LUT[lutIndex];
+	return {
+		r: Math.round(base.r * v),
+		g: Math.round(base.g * v),
+		b: Math.round(base.b * v)
+	};
+}
+
+function calculateHsvToRgb(h, s, v) {
+	const c = v * s;
+	const hh = normalizeHue(h) / 60;
+	const x = c * (1 - Math.abs((hh % 2) - 1));
+	const m = v - c;
+
+	let r = 0, g = 0, b = 0;
+
+	if (hh >= 0 && hh < 1) {
+		r = c; g = x; b = 0;
+	} else if (hh >= 1 && hh < 2) {
+		r = x; g = c; b = 0;
+	} else if (hh >= 2 && hh < 3) {
+		r = 0; g = c; b = x;
+	} else if (hh >= 3 && hh < 4) {
+		r = 0; g = x; b = c;
+	} else if (hh >= 4 && hh < 5) {
+		r = x; g = 0; b = c;
+	} else {
+		r = c; g = 0; b = x;
+	}
+
+	return {
+		r: Math.round((r + m) * 255),
+		g: Math.round((g + m) * 255),
+		b: Math.round((b + m) * 255)
+	};
+}
+
 /**
  * POST /api/rave - Create rave visuals on the bar with flashing rainbow colors
  */
@@ -423,31 +478,25 @@ async function raveStopController(req, res) {
  * @returns {{r: number, g: number, b: number}} RGB object
  */
 function hsvToRgb(h, s, v) {
-	const c = v * s;
-	const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-	const m = v - c;
-	
-	let r = 0, g = 0, b = 0;
-	
-	if (h >= 0 && h < 60) {
-		r = c; g = x; b = 0;
-	} else if (h >= 60 && h < 120) {
-		r = x; g = c; b = 0;
-	} else if (h >= 120 && h < 180) {
-		r = 0; g = c; b = x;
-	} else if (h >= 180 && h < 240) {
-		r = 0; g = x; b = c;
-	} else if (h >= 240 && h < 300) {
-		r = x; g = 0; b = c;
-	} else if (h >= 300 && h < 360) {
-		r = c; g = 0; b = x;
+	// Fast path: fully saturated colors use a dense hue LUT with
+	// direct scaling by value, avoiding cache and extra math.
+	if (s === 1) {
+		return hueLutToRgb(h, v);
 	}
-	
-	return {
-		r: Math.round((r + m) * 255),
-		g: Math.round((g + m) * 255),
-		b: Math.round((b + m) * 255)
-	};
+
+	// Fallback: keep the existing memoization path for other
+	// saturation/value combinations.
+	const key = `${Math.round(normalizeHue(h))}|${Math.round(s * 100)}|${Math.round(v * 100)}`;
+	const cached = HSV_CACHE.get(key);
+	if (cached) return cached;
+
+	const rgb = calculateHsvToRgb(h, s, v);
+	HSV_CACHE.set(key, rgb);
+	if (HSV_CACHE.size > HSV_CACHE_LIMIT) {
+		HSV_CACHE.clear();
+	}
+
+	return rgb;
 }
 
 module.exports = {

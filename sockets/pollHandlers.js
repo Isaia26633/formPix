@@ -88,7 +88,12 @@ function handleClassUpdate() {
 						const upResponses = findResponse('Up')
 						if (upResponses && upResponses.responses == newPollData.totalResponders) {
 							gradient(pixels, 0x0000FF, 0xFF0000, 0, config.barPixels)
-							let display = displayBoard(pixels, 'Max Gamer', 0x00FF00, 0x000000, config, boardIntervals, ws281x)
+							let text = [
+								'Max Gamer',
+								'Skibidi Rizz!',
+								'Plus 100 Aura'
+							]
+							let display = displayBoard(pixels, text, 0x00FF00, 0x000000, config, boardIntervals, ws281x)
 							if (!display) return
 							boardIntervals.push(display)
 
@@ -104,7 +109,8 @@ playSound({ formbar: 'sfx_success01.wav' });
 
 							let text = [
 								'Wiggle Nation: Where democracy meets indecision!',
-								'Wiggle-o-mania: The cure for decision-making paralysis!'
+								'Wiggle-o-mania: The cure for decision-making paralysis!',
+								'Wiggle Wiggle Wiggle'
 							]
 
 							text = text[Math.floor(Math.random() * text.length)]
@@ -112,14 +118,18 @@ playSound({ formbar: 'sfx_success01.wav' });
 							let display = displayBoard(pixels, text, 0x00FFFF, 0x000000, config, boardIntervals, ws281x)
 							if (!display) return
 							boardIntervals.push(display)
-
 							specialDisplay = true
 						}
 
 						const downResponse = findResponse('Down')
 						if (downResponse && downResponse.responses == newPollData.totalResponders) {
 							playSound({ meme: 'womp-womp.wav' });
-							let display = displayBoard(pixels, 'Git Gud', 0xFF0000, 0x000000, config, boardIntervals, ws281x)
+							let text = [
+								'Git Gud',
+								'Skill Issue',
+								'Guh, Buh, Fluh'
+							]
+							let display = displayBoard(pixels, text, 0xFF0000, 0x000000, config, boardIntervals, ws281x)
 							if (!display) return
 							boardIntervals.push(display)
 							specialDisplay = true

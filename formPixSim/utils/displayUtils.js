@@ -3,9 +3,37 @@
  */
 
 const { letters } = require ('../../letters');
+const { fill } = require('./pixelOps');
 
 const PIXELS_PER_LETTER = 5;
 const BOARD_HEIGHT = 8;
+const boardPixelCache = new Map();
+
+function getBoardPixelsForString(string) {
+	let cached = boardPixelCache.get(string);
+	if (cached) return cached;
+
+	const builtPixels = [Array(8).fill(0)];
+	for (let letter of string) {
+		if (!letters[letter]) continue;
+
+		let letterImage = letters[letter].map(arr => arr.slice());
+		for (let col of letterImage) {
+			builtPixels.push(col);
+		}
+
+		const unspacedLetters = ['\u266A', '\u26CA', '\u26C9'];
+		if (!unspacedLetters.includes(letter)) builtPixels.push(Array(8).fill(0));
+	}
+
+	boardPixelCache.set(string, builtPixels);
+	if (boardPixelCache.size > 128) {
+		const firstKey = boardPixelCache.keys().next().value;
+		boardPixelCache.delete(firstKey);
+	}
+
+	return builtPixels;
+}
 
 /**
  * Shows a string on the board
@@ -18,31 +46,24 @@ const BOARD_HEIGHT = 8;
  * @param {Uint32Array} pixels - The pixels array
  */
 function showString(boardPixels, startFrame, textColor, backgroundColor, pixels, startPixel, endPixel) {
-	const { fill } = require('./pixelOps');
-	
-	let newBoardPixels = structuredClone(boardPixels);
 	let currentPixel = startPixel;
 	let currentColumn = startFrame;
-	let maxColumns = newBoardPixels.length;
+	let maxColumns = boardPixels.length;
 
 	fill(pixels, 0x000000, startPixel, endPixel - startPixel);
 
-	for (let i = 0; i < newBoardPixels.length; i++) {
-		if (startFrame % 2 === i % 2) {
-			newBoardPixels[i] = newBoardPixels[i].reverse();
-		}
-	}
-
 	for (let i = 0; i < maxColumns; i++) {
-		let col = newBoardPixels[currentColumn];
+		let col = boardPixels[currentColumn];
+		const useReversed = (startFrame % 2) === (currentColumn % 2);
 
-		for (let pixel of col) {
+		for (let row = 0; row < col.length; row++) {
+			const pixel = useReversed ? col[col.length - 1 - row] : col[row];
 			pixels[currentPixel] = pixel ? textColor : backgroundColor;
 			currentPixel++;
 
-			if (currentPixel >= endPixel) return
+			if (currentPixel >= endPixel) return;
 		}
-		currentColumn = (currentColumn + 1) % newBoardPixels.length;
+		currentColumn = (currentColumn + 1) % boardPixels.length;
 	}
 }
 
@@ -83,23 +104,6 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 	let endPixel = config.barPixels + endColumn * BOARD_HEIGHT
 
 	let boardPixels = [Array(8).fill(0)];
-	const buildBoardPixels = () => {
-		let builtPixels = [Array(8).fill(0)];
-
-		for (let letter of string) {
-			if (!letters[letter]) continue
-
-			let letterImage = letters[letter].map(arr => arr.slice());
-			for (let col of letterImage) {
-				builtPixels.push(col);
-			}
-
-			const unspacedLetters = ['\u266A', '\u26CA', '\u26C9'];
-			if (!unspacedLetters.includes(letter)) builtPixels.push(Array(8).fill(0));
-		}
-
-		return builtPixels;
-	}
 	const isStaticDisplay = stringColumnLength <= endColumn - startColumn;
 
 	for (let boardInterval of boardIntervals) {
@@ -115,7 +119,7 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 		) {
 			// Static displays need repaint when callers clear board pixels before calling displayBoard.
 			if (!boardInterval.interval && isStaticDisplay) {
-				showString(buildBoardPixels(), 0, textColor, backgroundColor, pixels, startPixel, endPixel);
+				showString(getBoardPixelsForString(string), 0, textColor, backgroundColor, pixels, startPixel, endPixel);
 				ws281x.render();
 			}
 			return
@@ -123,7 +127,6 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 	}
 
 	// Clear overlapping intervals by mutating the array in place
-	const { fill } = require('./pixelOps');
 	for (let i = boardIntervals.length - 1; i >= 0; i--) {
 		let boardInterval = boardIntervals[i];
 		if (
@@ -139,7 +142,7 @@ function displayBoard(pixels, string, textColor, backgroundColor, config, boardI
 		}
 	}
 
-	boardPixels = buildBoardPixels();
+	boardPixels = getBoardPixelsForString(string);
 
 	if (boardPixels.length - 1 <= endColumn - startColumn) {
 		showString(boardPixels, 0, textColor, backgroundColor, pixels, startPixel, endPixel);
