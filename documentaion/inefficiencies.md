@@ -26,7 +26,9 @@ Comprehensive performance bottleneck analysis with organized fixes, priorities, 
 | 🟠 **Animation & Rendering** | 4 | High | 2-3h |
 | 🟡 **Module & State** | 5 | Medium | 3-4h |
 | 🟢 **Quick Wins** | 5 | Easy | 1-2h |
-| 📋 **Total Issues** | **19** | **Significant** | **8-12h** |
+| 🟣 **Startup & Connectivity** | 5 | Medium | 2-3h |
+| 🧰 **SDK & Tooling** | 9 | Medium | 2-4h |
+| 📋 **Total Issues** | **45** | **Significant** | **17-25h** |
 
 ---
 
@@ -39,6 +41,10 @@ Comprehensive performance bottleneck analysis with organized fixes, priorities, 
 - [Module & Import Overhead](#module--import-overhead)
 - [State & Architecture](#state--architecture)
 - [Quick Wins](#quick-wins)
+- [Additional Small Findings](#additional-small-findings)
+- [Duplicated Runtime Work](#duplicated-runtime-work)
+- [Startup & Connectivity](#startup--connectivity)
+- [SDK & Tooling Findings](#sdk--tooling-findings)
 - [Implementation Roadmap](#implementation-roadmap)
 - [External References](#external-references)
 
@@ -267,6 +273,110 @@ Small, low-effort fixes with minimal downside.
 - [ ] Replace `Math.floor(Math.random() * arr.length)` with helper
 - [ ] Use shallow equality or field checks instead of deep equality in poll handler
 - [ ] Create `getRandomInt(min, max)` helper to replace inline `Math.floor(Math.random()...)`
+
+---
+
+## Additional Small Findings
+
+These are smaller than the main hot paths, but they add up and make the code cleaner.
+
+| # | Location | Why it matters | Suggested fix |
+|---|----------|----------------|---------------|
+| 20 | [controllers/displayControllers.js#L74](controllers/displayControllers.js#L74) | `config.formbarUrl.split('://')[1]` is repeated for default text | Cache the parsed host once in state or a helper |
+| 21 | [sockets/pollHandlers.js#L51-L153](sockets/pollHandlers.js#L51-L153) | `Object.values(newPollData.responses)` is recomputed many times | Compute once and reuse the array |
+| 22 | [state.js#L44-L48](state.js#L44-L48) | Manual zero-fill loop walks every pixel one by one | Replace with `pixels.fill(0x000000)` |
+| 23 | [state.js#L81-L84](state.js#L81-L84) | `existsSync` + `mkdirSync` are synchronous at startup | Use one recursive `mkdirSync` or async setup helper |
+| 24 | [middleware/validateQueryParams.js#L8-L20](middleware/validateQueryParams.js#L8-L20) | Every request loops all query keys even for simple routes | Short-circuit on known routes or use `Object.keys()` once |
+
+### Tiny cleanup ideas
+- Cache `formbarUrl` without protocol stripping in multiple files.
+- Move repeated response-aggregation loops in `pollHandlers` into a helper.
+- Use `Array.prototype.some()` / `find()` only once per pass where possible.
+- Make startup directory setup a shared utility for `bgm`, `sfx`, and logs.
+- Prefer built-in bulk operations like `fill()` when clearing buffers.
+
+### Repeated code patterns worth deduplicating
+
+| Pattern | Where it appears | Why it should be reused | Suggested helper |
+|---------|------------------|-------------------------|------------------|
+| `fill(...); ws281x.render();` | `controllers/pixelControllers.js`, `sockets/pollHandlers.js`, `sockets/timerHandlers.js`, `sockets/connectionHandlers.js` | Repeated draw-and-render logic makes behavior harder to keep consistent | `renderPixels(fillFn)` or `drawAndRender()` |
+| `require('../state')` inside handlers | Many controllers and socket callbacks | Same module load pattern repeated across functions; makes hot paths noisy | Module-level `state` import or injected context |
+| Query param validation boilerplate | `controllers/pixelControllers.js`, `controllers/displayControllers.js` | Same `Number()` and missing-value checks repeated in multiple endpoints | `parseQueryParams(query, schema)` |
+| Random selection boilerplate | `sockets/pollHandlers.js`, `controllers/raveControllers.js` | Same `Math.floor(Math.random() * arr.length)` repeated | `pickRandom(arr)` |
+| Color parsing and defaults | `controllers/displayControllers.js`, `controllers/pixelControllers.js` | Default colors and validation duplicated in several routes | `parseColorOrDefault(value, fallback)` |
+| Formbar host extraction | `controllers/displayControllers.js`, `sockets/connectionHandlers.js`, `sockets/pollHandlers.js` | Same `split('://')[1]` logic repeated | `getFormbarHost(url)` |
+
+**Why this matters:** repeated code is not just a style issue; it usually means repeated work, repeated bugs, and repeated maintenance cost. When the same logic is copied into 3-5 places, a small optimization multiplies across the app.
+
+---
+
+## Duplicated Runtime Work
+
+These are repeated operations that currently run more than once or are copied in multiple places.
+
+| # | Location | Repeated work | Better pattern |
+|---|----------|---------------|----------------|
+| 25 | [state.js#L50-L52](state.js#L50-L52), [app.js#L68-L72](app.js#L68-L72) | Two Socket.IO clients connect to the same formbar URL | Create one shared socket and reuse it everywhere |
+| 26 | [sockets/pollHandlers.js#L51-L153](sockets/pollHandlers.js#L51-L153) | The same poll response collection and totals are recomputed multiple times | Summarize responses once in a helper and reuse the result |
+| 27 | [state.js#L81-L84](state.js#L81-L84), [utils/logger.js#L11-L14](utils/logger.js#L11-L14) | Repeated synchronous folder existence checks at startup | Use one startup utility that creates all required folders |
+| 28 | [middleware/checkPermissions.js#L24-L57](middleware/checkPermissions.js#L24-L57) | Similar error response paths are duplicated | Create a single `sendPermissionError()` helper |
+| 29 | [controllers/displayControllers.js#L20-L45](controllers/displayControllers.js#L20-L45), [controllers/pixelControllers.js](controllers/pixelControllers.js) | Color defaults, parsing, and validation repeat across endpoints | Use a shared color parsing helper with defaults |
+
+### Duplication patterns to search for
+- Multiple modules calling the same URL parsing logic
+- Same `fill + render` sequence in different handlers
+- Repeated `Number()` and `parseInt()` conversions on query params
+- The same `Object.values()` + loop pattern over response objects
+- Multiple `fs.existsSync()` checks for app setup folders
+
+---
+
+## Startup & Connectivity
+
+These are startup, request-gating, and connection-path inefficiencies that are easy to miss but affect the whole app.
+
+| # | Location | Issue | Suggested fix |
+|---|----------|-------|---------------|
+| 30 | [state.js#L50-L52](state.js#L50-L52) and [app.js#L68-L72](app.js#L68-L72) | Two Socket.IO clients connect to the same formbar URL | Create one shared socket and reuse it everywhere |
+| 31 | [state.js#L81-L84](state.js#L81-L84) and [utils/logger.js#L11-L14](utils/logger.js#L11-L14) | Startup folder checks are repeated in two places | Create one startup helper that ensures all directories exist |
+| 32 | [middleware/checkPermissions.js#L24-L57](middleware/checkPermissions.js#L24-L57) | Error responses are duplicated and `res.status(400)` is sent twice in one path | Add a single `sendPermissionError()` helper and return once |
+| 33 | [middleware/handle404.js#L8-L22](middleware/handle404.js#L8-L22) | The 404 handler does not consistently send a response in the normal path | Make it always respond with 404, or call `next()` intentionally |
+| 34 | [middleware/validateQueryParams.js#L8-L20](middleware/validateQueryParams.js#L8-L20) | Every request loops all query keys even for routes that don't need it | Short-circuit known safe routes or validate only when needed |
+| 35 | [utils/soundUtils.js#L50-L99](utils/soundUtils.js#L50-L99) | `playSound()` duplicates bgm/sfx existence checks and playback logic | Extract shared file-check/play helper for both paths |
+| 36 | [controllers/soundControllers.js#L24-L58](controllers/soundControllers.js#L24-L58) | `isPlayingSound` can stay true forever when playback returns a simple truthy value instead of an emitter | Clear the flag for all completion paths or normalize `playSound()` return values |
+
+### Small startup wins
+- Merge `fs.existsSync` folder checks into one utility.
+- Reuse one Socket.IO client instead of creating two at boot.
+- Make 404 and permission middleware return on all branches.
+- Only validate query params on routes that actually use them.
+- Turn repeated sound path handling into a single branch.
+- Ensure the sound-playing flag always resets after playback.
+
+---
+
+## SDK & Tooling Findings
+
+Issues found in wrapper packages, test files, and project/tooling setup.
+
+| # | Location | Issue | Suggested fix |
+|---|----------|-------|---------------|
+| 37 | [npm_package/formpixapi.js#L95-L108](npm_package/formpixapi.js#L95-L108) | `getSounds()` sends command `say` instead of `getSounds` | Call `sendCommand('getSounds', ...)` |
+| 38 | [npm_package/formpixapi.js#L54-L61](npm_package/formpixapi.js#L54-L61) | `setPixel()` sends `location`, API expects `pixel` | Align parameter names with API contract |
+| 39 | [npm_package/formpixapi.js#L21-L35](npm_package/formpixapi.js#L21-L35) | `sendCommand()` logs and swallows errors, returns nothing | Return a Promise and surface status/error to callers |
+| 40 | [npm_package/test.js#L3](npm_package/test.js#L3) | Hardcoded long API key in source | Move secrets to env vars and remove committed test key |
+| 41 | [formPixSim/package.json#L15-L16](formPixSim/package.json#L15-L16) | Misspelled dependency `axos` adds install noise and lock churn | Remove typo dependency and keep only `axios` |
+| 42 | [formPixSim/controllers/soundControllers.js#L48-L66](formPixSim/controllers/soundControllers.js#L48-L66) | Uses timeout-based sound lock reset, may unlock too late/early | Reset lock on actual playback completion event |
+| 43 | [formPixSim/sockets/soundHandlers.js#L22-L88](formPixSim/sockets/soundHandlers.js#L22-L88) | Recreates sim player object on every sound event | Create one reusable emitter utility at module scope |
+| 44 | [formPixSim/sockets/pollHandlers.js#L61-L91](formPixSim/sockets/pollHandlers.js#L61-L91) | Rebuilds identical `simPlayer` object in multiple branches | Extract one `emitSound(webIo, file)` helper |
+| 45 | [controllers/displayControllers.js#L7](controllers/displayControllers.js#L7), [formPixSim/controllers/displayControllers.js#L7](formPixSim/controllers/displayControllers.js#L7) | Unused `const { text } = require('express')` import | Remove unused import and keep controller module minimal |
+
+### Tooling cleanup checklist
+- Fix npm wrapper endpoint/parameter mismatches before publishing.
+- Ensure SDK functions return Promise results instead of console-only side effects.
+- Remove committed secrets and rotate leaked keys.
+- Remove typo dependencies (`axos`) to stabilize lockfiles.
+- Consolidate simulator sound emit logic into one utility.
 
 ---
 
@@ -522,8 +632,10 @@ Keep `formPixSim/` synchronized with `formPix/` to avoid divergent behavior.
 - 🟠 4 high-impact rendering issues → 20-40% gains with pre-compute + dispatch
 - 🟡 5 medium issues (state/logic) → Better structure, reduced overhead
 - 🟢 5 quick wins → Easy polish, minimal risk
+- 🟣 5 startup/connectivity issues → cleaner boot + fewer runtime surprises
+- 🧰 9 SDK/tooling issues → better wrappers, fewer integration bugs
 
-**Total Issues Found:** 19
+**Total Issues Found:** 45
 
 **Recommended Path:**
 1. Phase 1 (4h) → Gamma + HSV + Progress = **70% of total gains**
@@ -531,4 +643,4 @@ Keep `formPixSim/` synchronized with `formPix/` to avoid divergent behavior.
 3. Phase 2 (5h) → Rendering + dispatch = **20% more gains**
 4. Phase 3-4 (7h) → Architecture cleanup
 
-**Timeline:** 10-15 hours total; **4 hours for Phase 1 = 70% gains** ⭐
+**Timeline:** 17-25 hours total; **4-6 hours for Phase 1 = largest gains** ⭐
