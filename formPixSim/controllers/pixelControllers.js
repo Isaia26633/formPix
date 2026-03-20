@@ -170,9 +170,14 @@ function animateProgress(start, length, startingFill, duration, interval, bg1, b
 	const { pixels, ws281x } = require('../state');
 	const { hexToRgb, rgbToHex } = require('../utils/colorUtils');
 
+	if (start < 0) start = 0;
+	if (start >= pixels.length) return;
+	if (start + length > pixels.length) length = pixels.length - start;
+
 	const fg1Rgb = hexToRgb(fg1);
 	const fg2Rgb = hexToRgb(fg2);
-	const fgGradientColors = [];
+	const fgGradientColors = new Uint32Array(length);
+	const bgGradientColors = new Uint32Array(length);
 	const stepColor = length > 1 ? fg1Rgb.map((c, i) => (fg2Rgb[i] - c) / (length - 1)) : [0, 0, 0];
 	
 	for (let i = 0; i < length; i++) {
@@ -182,10 +187,11 @@ function animateProgress(start, length, startingFill, duration, interval, bg1, b
 			Math.round(fg1Rgb[2] + stepColor[2] * i)
 		]);
 	}
+	gradient(bgGradientColors, bg1, bg2, 0, length);
 
 	if (duration === undefined) {
 		//fills the bar if no duration is provided
-		gradient(pixels, bg1, bg2, start, length);
+		pixels.set(bgGradientColors, start);
 		for (let i = 0; i < length; i++) {
 			pixels[start + i] = fgGradientColors[i];
 		}
@@ -209,7 +215,7 @@ function animateProgress(start, length, startingFill, duration, interval, bg1, b
 		const fillLength = Math.floor((currentPercent / 100) * length);
 
 		// Draw background gradient
-		gradient(pixels, bg1, bg2, start, length);
+		pixels.set(bgGradientColors, start);
 
 		// Draw foreground using pre-calculated gradient colors (reveals the gradient as it fills)
 		for (let i = 0; i < fillLength; i++) {
