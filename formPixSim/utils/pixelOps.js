@@ -17,6 +17,11 @@ const GAMMA_LUT = (() => {
 	return table;
 })();
 
+/**
+ * Apply gamma correction to a single color channel.
+ * @param {number} value - Channel value between 0 and 255.
+ * @returns {number} Gamma-corrected channel value.
+ */
 function gammaCorrect(value) {
 	let v = value;
 	if (v < 0) v = 0;
@@ -28,9 +33,10 @@ function gammaCorrect(value) {
 /**
  * Fills a portion of the pixels array with a specified color.
  * @param {Uint32Array} pixels - The pixels array
- * @param {string} color - The color to fill the pixels with.
+ * @param {number} color - The color to fill the pixels with.
  * @param {number} [start=0] - The starting index from where to start filling the pixels.
  * @param {number} [length=pixels.length] - The number of pixels to fill with the color.
+ * @returns {void}
  */
 function fill(pixels, color, start = 0, length = pixels.length) {
 	if (length >= pixels.length) length = pixels.length - start;
@@ -47,6 +53,7 @@ function fill(pixels, color, start = 0, length = pixels.length) {
  * @param {number} endColor - The end color in hexadecimal format.
  * @param {number} [start=0] - The start position of the gradient.
  * @param {number} [length=pixels.length] - The length of the gradient.
+ * @returns {void}
  */
 function gradient(pixels, startColor, endColor, start = 0, length = pixels.length) {
 	const startRgb = hexToRgb(startColor);

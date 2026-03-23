@@ -10,6 +10,7 @@ const raveController = require('./raveControllers');
 
 /**
  * Helper function to cancel any ongoing rave animation
+ * @returns {void}
  */
 function cancelRave() {
 	if (raveController.currentRaveInterval) {
@@ -20,6 +21,9 @@ function cancelRave() {
 
 /**
  * POST /api/percentage - Fill a percentage of the LED strip with a color
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {void}
  */
 function percentageController(req, res) {
 	try {
@@ -50,6 +54,9 @@ function percentageController(req, res) {
 
 /**	
  * POST /api/progress - Fill a progress bar on the LED strip
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 
 let currentProgressInterval = null;
@@ -164,7 +171,24 @@ async function progressController(req, res) {
 }
 
 /**
+ * @typedef {Object} RgbObject
+ * @property {number} r
+ * @property {number} g
+ * @property {number} b
+ */
+
+/**
  * Animate the progress bar from startingFill to 100%
+ * @param {number} start - Starting pixel index.
+ * @param {number} length - Number of pixels in the progress segment.
+ * @param {number} startingFill - Initial fill percentage from 0 to 100.
+ * @param {number|undefined} duration - Animation duration in milliseconds.
+ * @param {number} interval - Frame interval in milliseconds.
+ * @param {number} bg1 - Background start color.
+ * @param {number} bg2 - Background end color.
+ * @param {number} fg1 - Foreground start color.
+ * @param {number} fg2 - Foreground end color.
+ * @returns {void}
  */
 function animateProgress(start, length, startingFill, duration, interval, bg1, bg2, fg1, fg2) {
 	const { pixels, ws281x } = require('../state');
@@ -234,6 +258,9 @@ function animateProgress(start, length, startingFill, duration, interval, bg1, b
 
 /**
  * POST /api/fillByPercent - Fill a percentage of the LED strip with a fill color and background color
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 async function fillByPercentController(req, res) {
 	try {
@@ -298,6 +325,9 @@ async function fillByPercentController(req, res) {
 
 /**
  * POST /api/fill - Fill LED strip with a color
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 async function fillController(req, res) {
 	try {
@@ -348,6 +378,9 @@ async function fillController(req, res) {
 
 /**
  * POST /api/gradient - Fill LED strip with a gradient
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 async function gradientController(req, res) {
 	try {
@@ -404,6 +437,9 @@ async function gradientController(req, res) {
 
 /**
  * POST /api/setPixel - Set a single pixel color
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 async function setPixelController(req, res) {
 	try {
@@ -441,6 +477,9 @@ async function setPixelController(req, res) {
 
 /**
  * POST /api/setPixels - Set multiple pixel colors
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 async function setPixelsController(req, res) {
 	try {

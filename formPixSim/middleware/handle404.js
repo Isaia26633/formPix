@@ -6,6 +6,10 @@ const logger = require('../utils/logger');
 
 /**
  * Handle 404 errors
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @param {import('express').NextFunction} next - Express next callback.
+ * @returns {void}
  */
 function handle404(req, res, next) {
 	try {

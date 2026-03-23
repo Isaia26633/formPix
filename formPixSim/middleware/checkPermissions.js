@@ -6,6 +6,10 @@ const logger = require('../utils/logger');
 
 /**
  * Check user permissions
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @param {import('express').NextFunction} next - Express next callback.
+ * @returns {Promise<void>} Resolves when middleware finishes.
  */
 async function checkPermissions(req, res, next) {
 	try {

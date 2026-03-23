@@ -16,14 +16,22 @@ const logger = require('../utils/logger');
  * @returns {{play: PlaySoundFn}} Simulated player interface
  */
 function createSimPlayer(webIo) {
-	return {
-		play: async (string, options) => {
-			logger.debug('Playing sound via socket', { sound: string });
-			let sockets = await webIo.fetchSockets()
-			for (let socket of sockets) {
-				socket.emit('play', string)
-			}
+	/**
+	 * Emit a sound path to all connected web clients.
+	 * @param {string} soundPath - Relative sound file path.
+	 * @param {Record<string, unknown>} [options] - Optional playback metadata.
+	 * @returns {Promise<void>} Resolves after emits are sent.
+	 */
+	async function play(soundPath, options) {
+		logger.debug('Playing sound via socket', { sound: soundPath, options });
+		let sockets = await webIo.fetchSockets()
+		for (let socket of sockets) {
+			socket.emit('play', soundPath)
 		}
+	}
+
+	return {
+		play
 	}
 }
 

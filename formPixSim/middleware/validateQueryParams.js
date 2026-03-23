@@ -6,6 +6,10 @@ const logger = require('../utils/logger');
 
 /**
  * Check for multiple of the same query parameter
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @param {import('express').NextFunction} next - Express next callback.
+ * @returns {void}
  */
 function validateQueryParams(req, res, next) {
 	let query = req.query
