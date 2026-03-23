@@ -9,7 +9,14 @@ const { displayBoard, getStringColumnLength } = require('../utils/displayUtils')
 const PIXELS_PER_LETTER = 5;
 
 /**
+ * @typedef {{fetchSockets: () => Promise<Array<{emit: (event: string, payload?: unknown) => void}>>}} WebIo
+ * @typedef {{ poll: Record<string, unknown> }} ClassroomData
+ */
+
+/**
  * Handle class update with poll data
+ * @param {WebIo} webIo socket.io server instance
+ * @returns {(classroomData: ClassroomData) => void} Class update callback
  */
 function handleClassUpdate(webIo) {
 	return (classroomData) => {

@@ -5,7 +5,15 @@
 const logger = require('../utils/logger');
 
 /**
+ * @typedef {{emit: (event: string, payload?: unknown) => void}} EmittableSocket
+ * @typedef {{fetchSockets: () => Promise<EmittableSocket[]>}} WebIo
+ * @typedef {(soundPath: string, options?: Record<string, unknown>) => Promise<void>} PlaySoundFn
+ */
+
+/**
  * Create player-like object that emits to web clients
+ * @param {WebIo} webIo socket.io server instance
+ * @returns {{play: PlaySoundFn}} Simulated player interface
  */
 function createSimPlayer(webIo) {
 	return {
@@ -21,6 +29,8 @@ function createSimPlayer(webIo) {
 
 /**
  * Handle help sound event
+ * @param {WebIo} webIo socket.io server instance
+ * @returns {() => Promise<void>} Sound event callback
  */
 function handleHelpSound(webIo) {
 	return async () => {
@@ -31,6 +41,8 @@ function handleHelpSound(webIo) {
 
 /**
  * Handle break sound event
+ * @param {WebIo} webIo socket.io server instance
+ * @returns {() => Promise<void>} Sound event callback
  */
 function handleBreakSound(webIo) {
 	return async () => {
@@ -41,6 +53,8 @@ function handleBreakSound(webIo) {
 
 /**
  * Handle poll sound event
+ * @param {WebIo} webIo socket.io server instance
+ * @returns {() => Promise<void>} Sound event callback
  */
 function handlePollSound(webIo) {
 	return async () => {
@@ -51,6 +65,8 @@ function handlePollSound(webIo) {
 
 /**
  * Handle remove poll sound event
+ * @param {WebIo} webIo socket.io server instance
+ * @returns {() => Promise<void>} Sound event callback
  */
 function handleRemovePollSound(webIo) {
 	return async () => {
@@ -61,6 +77,8 @@ function handleRemovePollSound(webIo) {
 
 /**
  * Handle join sound event
+ * @param {WebIo} webIo socket.io server instance
+ * @returns {() => Promise<void>} Sound event callback
  */
 function handleJoinSound(webIo) {
 	return async () => {
@@ -71,6 +89,8 @@ function handleJoinSound(webIo) {
 
 /**
  * Handle leave sound event
+ * @param {WebIo} webIo socket.io server instance
+ * @returns {() => Promise<void>} Sound event callback
  */
 function handleLeaveSound(webIo) {
 	return async () => {
@@ -81,6 +101,8 @@ function handleLeaveSound(webIo) {
 
 /**
  * Handle kick students sound event
+ * @param {WebIo} webIo socket.io server instance
+ * @returns {() => Promise<void>} Sound event callback
  */
 function handleKickStudentsSound(webIo) {
 	return async () => {
@@ -91,6 +113,8 @@ function handleKickStudentsSound(webIo) {
 
 /**
  * Handle end class sound event
+ * @param {WebIo} webIo socket.io server instance
+ * @returns {() => Promise<void>} Sound event callback
  */
 function handleEndClassSound(webIo) {
 	return async () => {
@@ -101,6 +125,8 @@ function handleEndClassSound(webIo) {
 
 /**
  * Handle timer sound event
+ * @param {WebIo} webIo socket.io server instance
+ * @returns {() => Promise<void>} Sound event callback
  */
 function handleTimerSound(webIo) {
 	return async () => {
