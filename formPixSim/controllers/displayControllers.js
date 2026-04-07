@@ -22,6 +22,38 @@ async function sayController(req, res) {
 
 		let { text, textColor, backgroundColor, scroll } = req.query;
 
+		let API_KEY = req.headers.api
+
+		let reqOptions =
+		{
+			method: 'GET',
+			headers: {
+				'API': API_KEY,
+				'Content-Type': 'application/json'
+			}
+		};
+
+		const FORMBAR_URL = (
+			process.env.formbarUrl
+			?? process.env.FORMBAR_URL
+			?? state.config.formbarUrl
+			?? ''
+		).replace(/\/+$/, '');
+
+		fetch(`${FORMBAR_URL}/api/me`, reqOptions)
+			.then((response) => {
+				// Convert received data to JSON
+				return response.json();
+			})
+			.then((data) => {
+				// Log the data if the request is successful
+				console.log(data);
+			})
+			.catch((err) => {
+				// If there's a problem, handle it...
+				if (err) console.log('connection closed due to errors', err);
+			});
+
 		if (!text) {
 			res.status(400).json({ source: 'Formpix', error: 'You did not provide any text' })
 			return
@@ -56,7 +88,7 @@ async function sayController(req, res) {
 		boardIntervals.push(display)
 
 		// Store the current display message
-		state.currentDisplayMessage = text;	state.lastDisplayUpdate = new Date().toISOString();
+		state.currentDisplayMessage = text; state.lastDisplayUpdate = new Date().toISOString();
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
 		console.error('Error in sayController:', err);
