@@ -98,7 +98,7 @@ function handleClassUpdate() {
 								'Skibidi Rizz!',
 								'Plus 100 Aura'
 							]
-							let display = displayBoard(pixels, text, 0x00FF00, 0x000000, config, boardIntervals, ws281x)
+							let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0x00FF00, 0x000000, config, boardIntervals, ws281x)
 							if (!display) return
 							boardIntervals.push(display)
 
@@ -135,7 +135,7 @@ function handleClassUpdate() {
 								'Guh, Buh, Fluh, do better',
 								'Imagine getting all downs, could never be me'
 							]
-							let display = displayBoard(pixels, text, 0xFF0000, 0x000000, config, boardIntervals, ws281x)
+							let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0xFF0000, 0x000000, config, boardIntervals, ws281x)
 							if (!display) return
 							boardIntervals.push(display)
 							specialDisplay = true
