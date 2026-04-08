@@ -43,7 +43,8 @@ function handleClassUpdate(webIo) {
 
 		if (util.isDeepStrictEqual(newPollData, pollData)) return
 
-		logger.debug('Class update received', { pollStatus: newPollData.status, pollPrompt: newPollData.prompt });
+		const responseCount = newPollData.responses ? Object.keys(newPollData.responses).length : 0;
+		logger.debug(`Formbar classUpdate: status=${newPollData.status}, prompt="${newPollData.prompt || ''}", responses=${newPollData.totalResponses}/${newPollData.totalResponders}, options=${responseCount}, timerActive=${timerData.active}`);
 
 		// Only clear the bar when poll is cleared (no responses), not when it's just ended
 		if (!newPollData.status && (!newPollData.responses || Object.keys(newPollData.responses).length === 0)) {
