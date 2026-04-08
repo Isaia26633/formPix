@@ -63,16 +63,16 @@ function handleClassUpdate() {
 				pollResponses += poll.responses
 			}
 
-			if (newPollData.totalResponses === 6 && newPollData.totalResponders === 9) {
-				if (player) player.play('./sfx/memeSFX/noice.wav')
-			}
+			// if (newPollData.totalResponses === 6 && newPollData.totalResponders === 9) {
+			// 	if (player) player.play('./sfx/memeSFX/noice.wav')
+			// }
 
-			if (newPollData.totalResponses === 6 && newPollData.totalResponders === 7) {
-				if (player) player.play('./sfx/memeSFX/brainrot.wav')
-			}
+			// if (newPollData.totalResponses === 6 && newPollData.totalResponders === 7) {
+			// 	if (player) player.play('./sfx/memeSFX/brainrot.wav')
+			// }
 
-			if (newPollData.totalResponses === 4 && newPollData.totalResponders === 20) {
-				if (player) player.play('./sfx/memeSFX/snoop.wav')
+			// if (newPollData.totalResponses === 4 && newPollData.totalResponders === 20) {
+			// 	if (player) player.play('./sfx/memeSFX/snoop.wav')
 			} if (!timerData.active) {
 				fill(pixels, 0x808080, 0, config.barPixels)
 
