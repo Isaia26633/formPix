@@ -10,7 +10,12 @@ const { playSound, player } = require('../utils/soundUtils');
 const PIXELS_PER_LETTER = 5;
 
 /**
+ * @typedef {{ poll: Record<string, unknown> }} ClassroomData
+ */
+
+/**
  * Handle class update with poll data
+ * @returns {(classroomData: ClassroomData) => void} Class update callback
  */
 function handleClassUpdate() {
 	return (classroomData) => {

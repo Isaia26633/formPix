@@ -9,6 +9,9 @@ const { text } = require('express');
 
 /**
  * POST /api/say - Display text on the LED board
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 async function sayController(req, res) {
 	try {
@@ -63,6 +66,9 @@ async function sayController(req, res) {
 
 /**
  * GET /api/getDisplay - Get the current message displayed on the LED board
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 async function getDisplayController(req, res) {
 	try {

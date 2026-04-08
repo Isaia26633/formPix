@@ -14,28 +14,62 @@ if (!fs.existsSync(logsDir)) {
 	fs.mkdirSync(logsDir, { recursive: true });
 }
 
+/**
+ * Format a log entry for file output.
+ * @param {{timestamp: string, level: string, message: string, stack?: string}} entry - Winston log entry.
+ * @returns {string} Formatted log line.
+ */
+function formatFileLogEntry({ timestamp, level, message, stack }) {
+	if (stack) {
+		return `${timestamp} [${level.toUpperCase()}]: ${message}\n${stack}`;
+	}
+	return `${timestamp} [${level.toUpperCase()}]: ${message}`;
+}
+
+/**
+ * Format a log entry for colored console output.
+ * @param {{timestamp: string, level: string, message: string, stack?: string}} entry - Winston log entry.
+ * @returns {string} Formatted console log line.
+ */
+function formatConsoleLogEntry({ timestamp, level, message, stack }) {
+	if (stack) {
+		return `${timestamp} [${level}]: ${message}\n${stack}`;
+	}
+	return `${timestamp} [${level}]: ${message}`;
+}
+
+/**
+ * Handle unhandled Promise rejections.
+ * @param {unknown} reason - Rejection reason.
+ * @param {Promise<unknown>} promise - Rejected promise.
+ * @returns {void}
+ */
+function handleUnhandledRejection(reason, promise) {
+	logger.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
+}
+
+/**
+ * Handle uncaught exceptions.
+ * @param {Error} error - Thrown error.
+ * @returns {void}
+ */
+function handleUncaughtException(error) {
+	logger.error(`Uncaught Exception: ${error.message}`, { stack: error.stack });
+	process.exit(1);
+}
+
 // Define log format
 const logFormat = winston.format.combine(
 	winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
 	winston.format.errors({ stack: true }),
-	winston.format.printf(({ timestamp, level, message, stack }) => {
-		if (stack) {
-			return `${timestamp} [${level.toUpperCase()}]: ${message}\n${stack}`;
-		}
-		return `${timestamp} [${level.toUpperCase()}]: ${message}`;
-	})
+	winston.format.printf(formatFileLogEntry)
 );
 
 // Console format with colors
 const consoleFormat = winston.format.combine(
 	winston.format.colorize(),
 	winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-	winston.format.printf(({ timestamp, level, message, stack }) => {
-		if (stack) {
-			return `${timestamp} [${level}]: ${message}\n${stack}`;
-		}
-		return `${timestamp} [${level}]: ${message}`;
-	})
+	winston.format.printf(formatConsoleLogEntry)
 );
 
 // Daily rotate file transport for all logs
@@ -73,13 +107,8 @@ const logger = winston.createLogger({
 });
 
 // Handle unhandled rejections and exceptions
-process.on('unhandledRejection', (reason, promise) => {
-	logger.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
-});
+process.on('unhandledRejection', handleUnhandledRejection);
 
-process.on('uncaughtException', (error) => {
-	logger.error(`Uncaught Exception: ${error.message}`, { stack: error.stack });
-	process.exit(1);
-});
+process.on('uncaughtException', handleUncaughtException);
 
 module.exports = logger;

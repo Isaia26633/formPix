@@ -9,6 +9,9 @@ let isPlayingSound = false;
 
 /**
  * GET /api/getSounds - Get list of available sounds
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 async function getSoundsController(req, res) {
 	try {
@@ -28,6 +31,10 @@ async function getSoundsController(req, res) {
 
 /**
  * POST /api/playSound - Play a sound file
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @param {{fetchSockets: () => Promise<Array<{emit: (event: string, payload?: unknown) => void}>>}} webIo - Socket.io server wrapper.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 async function playSoundController(req, res, webIo) {
 	try {
@@ -67,6 +74,10 @@ async function playSoundController(req, res, webIo) {
 			}
 			
 			// Reset flag after 30 seconds or when response finishes (whichever comes first)
+			/**
+			 * Reset the global sound playing guard.
+			 * @returns {void}
+			 */
 			const resetPlayingFlag = () => {
 				isPlayingSound = false;
 			};

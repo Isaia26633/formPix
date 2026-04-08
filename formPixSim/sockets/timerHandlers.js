@@ -7,8 +7,14 @@ const { fill } = require('../utils/pixelOps');
 
 /**
  * Handle timer updates
+ * @returns {(newTimerData: {timeLeft: number, startTime: number, active: boolean, sound?: boolean}) => void} Timer event callback.
  */
 function handleVBTimer() {
+	/**
+	 * Apply incoming timer state to the LED bar.
+	 * @param {{timeLeft: number, startTime: number, active: boolean, sound?: boolean}} newTimerData - Timer payload.
+	 * @returns {void}
+	 */
 	return (newTimerData) => {
 		const state = require('../state');
 		const { pixels, config, ws281x, socket } = state;

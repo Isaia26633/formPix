@@ -7,9 +7,18 @@ const { displayBoard, getStringColumnLength } = require('../utils/displayUtils')
 const state = require('../state');
 const logger = require('../utils/logger');
 
+/**
+ * @typedef {{ interval?: ReturnType<typeof setInterval> }} BoardInterval
+ * @typedef {{ message?: string }} SocketError
+ * @typedef {{ connect: () => void, emit: (event: string, payload?: unknown) => void }} ClientSocket
+ */
+
 
 /**
  * Handle connection error
+ * @param {ClientSocket} socket User socket instance
+ * @param {BoardInterval[]} boardIntervals Display interval records for the board
+ * @returns {(error: SocketError) => void} Connection error callback
  */
 function handleConnectError(socket, boardIntervals) {
 	return (error) => {
@@ -35,6 +44,9 @@ function handleConnectError(socket, boardIntervals) {
 
 /**
  * Handle connect
+ * @param {ClientSocket} socket User socket instance
+ * @param {BoardInterval[]} boardIntervals Display interval records for the board
+ * @returns {() => void} Connect event callback
  */
 function handleConnect(socket, boardIntervals) {
 	return () => {
@@ -53,6 +65,8 @@ function handleConnect(socket, boardIntervals) {
 
 /**
  * Request active class update
+ * @param {ClientSocket} socket User socket instance
+ * @returns {() => void} Class update request callback
  */
 function handleRequestClassUpdate(socket) {
 	return () => {
@@ -63,6 +77,9 @@ function handleRequestClassUpdate(socket) {
 
 /**
  * Handle set class
+ * @param {ClientSocket} socket User socket instance
+ * @param {BoardInterval[]} boardIntervals Display interval records for the board
+ * @returns {(userClassId: string | null | undefined) => void} Set class callback
  */
 function handleSetClass(socket, boardIntervals) {
 	return (userClassId) => {

@@ -6,6 +6,10 @@ const logger = require('../utils/logger');
 
 /**
  * Check if connected to formBar
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @param {import('express').NextFunction} next - Express next callback.
+ * @returns {void}
  */
 function checkConnection(req, res, next) {
 	const { connected } = require('../state');
