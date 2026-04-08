@@ -5,7 +5,12 @@
 const { player } = require('../utils/soundUtils');
 
 /**
+ * @typedef {() => void} SoundEventHandler
+ */
+
+/**
  * Handle help sound event
+ * @returns {SoundEventHandler} Sound event callback
  */
 function handleHelpSound() {
 	return () => {
@@ -15,6 +20,7 @@ function handleHelpSound() {
 
 /**
  * Handle break sound event
+ * @returns {SoundEventHandler} Sound event callback
  */
 function handleBreakSound() {
 	return () => {
@@ -24,6 +30,7 @@ function handleBreakSound() {
 
 /**
  * Handle poll sound event
+ * @returns {SoundEventHandler} Sound event callback
  */
 function handlePollSound() {
 	return () => {
@@ -33,6 +40,7 @@ function handlePollSound() {
 
 /**
  * Handle remove poll sound event
+ * @returns {SoundEventHandler} Sound event callback
  */
 function handleRemovePollSound() {
 	return () => {
@@ -42,6 +50,7 @@ function handleRemovePollSound() {
 
 /**
  * Handle join sound event
+ * @returns {SoundEventHandler} Sound event callback
  */
 function handleJoinSound() {
 	return () => {
@@ -51,6 +60,7 @@ function handleJoinSound() {
 
 /**
  * Handle leave sound event
+ * @returns {SoundEventHandler} Sound event callback
  */
 function handleLeaveSound() {
 	return () => {
@@ -60,6 +70,7 @@ function handleLeaveSound() {
 
 /**
  * Handle kick students sound event
+ * @returns {SoundEventHandler} Sound event callback
  */
 function handleKickStudentsSound() {
 	return () => {
@@ -69,6 +80,7 @@ function handleKickStudentsSound() {
 
 /**
  * Handle end class sound event
+ * @returns {SoundEventHandler} Sound event callback
  */
 function handleEndClassSound() {
 	return () => {
@@ -78,6 +90,7 @@ function handleEndClassSound() {
 
 /**
  * Handle timer sound event
+ * @returns {SoundEventHandler} Sound event callback
  */
 function handleTimerSound() {
 	return () => {

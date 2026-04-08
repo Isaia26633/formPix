@@ -6,10 +6,15 @@ Comprehensive performance bottleneck analysis with organized fixes, priorities, 
 
 ## 🚀 Quick Start
 
-**Top 3 Fixes (70% of gains):**
-1. **Gamma LUT** – Replace `Math.pow` with lookup table → 40-60% CPU savings
-2. **HSV Cache** – Memoize HSV→RGB in rave → 50-70% CPU savings  
-3. **Progress Buffer** – Pre-compute background gradient → 20-30% CPU savings
+**Already implemented (keep measured):**
+1. **Gamma LUT ✅** – `utils/pixelOps.js` now uses a 256-entry lookup table instead of `Math.pow` in hot paths.
+2. **Progress Buffer ✅** – `controllers/pixelControllers.js` pre-computes the background gradient into a buffer and copies with `Uint32Array.set`.
+3. **String Render ✅** – `utils/displayUtils.js` avoids `structuredClone`, hoists imports, and reuses board buffers.
+
+**Remaining top fixes (current focus):**
+1. **HSV Cache** – Further reduce HSV→RGB work in rave (especially non-`s=1` / non-`v=1` cases) → 50-70% CPU savings potential  
+2. **Mode Dispatch** – Replace per-frame string checks with a dispatch table in rave  
+3. **Deep Equality & Array Cleanup** – Tighten poll equality checks and in-place interval cleanup
 
 **Profiling:** `node --prof app.js` → `node --prof-process isolate-*.log | head -50`  
 **Real-time:** `clinic flame -- node app.js`
@@ -54,9 +59,9 @@ Comprehensive performance bottleneck analysis with organized fixes, priorities, 
 
 | Issue | Impact | Effort | ROI | File |
 |-------|--------|--------|-----|------|
-| Gamma LUT | 🔴 Critical | 1h | **10/10** | `utils/pixelOps.js` |
+| Gamma LUT (DONE) | 🔴 Critical | 1h | **10/10** | `utils/pixelOps.js` |
 | HSV Cache | 🔴 Critical | 1.5h | **10/10** | `controllers/raveControllers.js` |
-| Progress Buffer | 🔴 Critical | 1.5h | **9/10** | `controllers/pixelControllers.js` |
+| Progress Buffer (DONE) | 🔴 Critical | 1.5h | **9/10** | `controllers/pixelControllers.js` |
 | String Render | 🟠 High | 2h | 8/10 | `utils/displayUtils.js` |
 | Mode Dispatch | 🟠 High | 1.5h | 8/10 | `controllers/raveControllers.js` |
 | State Consolidation | 🟡 Med | 1.5h | 7/10 | Multiple |
@@ -69,9 +74,9 @@ Comprehensive performance bottleneck analysis with organized fixes, priorities, 
 
 | File | Count | Issue Types |
 |------|-------|------------|
-| `controllers/raveControllers.js` | 4 | HSV, mode dispatch, random, hue offset |
-| `utils/pixelOps.js` | 2 | Gamma pow, gradient require |
-| `controllers/pixelControllers.js` | 2 | Progress buffer, Color parsing |
+| `controllers/raveControllers.js` | 4 | HSV (partially cached), mode dispatch, random, hue offset |
+| `utils/pixelOps.js` | 2 | Gamma LUT (DONE), gradient LUT (DONE) |
+| `controllers/pixelControllers.js` | 2 | Progress buffer (DONE), Color parsing |
 | `sockets/pollHandlers.js` | 2 | Deep equality, random array pick |
 | `controllers/displayControllers.js` | 2 | Color parsing, state mutation |
 | `utils/displayUtils.js` | 2 | structuredClone, inline require |
@@ -85,44 +90,46 @@ Comprehensive performance bottleneck analysis with organized fixes, priorities, 
 
 These are per-frame or per-draw operations that dominate CPU usage.
 
-### 1. Gamma correction uses `Math.pow` per channel per pixel
+### 1. Gamma correction now uses a LUT (was `Math.pow`)
 - **Location:** [utils/pixelOps.js#L4-L42](utils/pixelOps.js#L4-L42)
-- **Impact:** 🔴 Critical – dominates CPU during animations
-- **Current code:** `gammaCorrect(value)` calls `Math.pow` for every channel write
-- **Fix:** Build a 256-entry lookup table once (`GAMMA_LUT[i] = ...`), replace `gammaCorrect(value)` with `GAMMA_LUT[value]`
-- **Estimated gain:** 40-60% CPU reduction in animation loops
+- **Impact:** 🔴 Critical (✅ already optimized) – hot path is now lookup-based
+- **Current code:** `GAMMA_LUT` is built once at module load; `gammaCorrect(value)` clamps to 0–255 and returns `GAMMA_LUT[value]`.
+- **Status:** ✅ **DONE** – previous `Math.pow`-per-channel implementation has been replaced.
+- **Next steps:** Keep this logic in place; only revisit if gamma behaviour or LED hardware changes.
 - **Read more:** [Gamma Correction](https://learn.adafruit.com/led-tricks-gamma-correction); [LUT discussion](https://stackoverflow.com/questions/596216/formula-to-determine-brightness-of-rgb-color)
 
-### 2. Progress animation recomputes static background each tick
+### 2. Progress animation uses a precomputed background buffer
 - **Location:** [controllers/pixelControllers.js#L171-L214](controllers/pixelControllers.js#L171-L214)
-- **Impact:** 🔴 Critical – recalculates every frame
-- **Current code:** `gradient(pixels, bg1, bg2, start, length)` runs every interval tick
-- **Fix:** Compute background gradient once into a buffer, copy via `Uint32Array.set` each tick, draw only foreground overlay
-- **Estimated gain:** 20-30% CPU reduction in progress animations
+- **Impact:** 🔴 Critical (✅ already optimized) – static background work removed from the per-tick path
+- **Current code:** `gradient(bgBuffer, bg1, bg2, 0, length)` pre-fills a `Uint32Array` once; each frame copies with `pixels.set(bgBuffer, start)` and only draws the foreground overlay.
+- **Status:** ✅ **DONE** – matches the intended optimization.
+- **Next steps:** Profile only if future changes affect progress animations.
 - **Read more:** [Uint32Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint32Array); [JS Animation Perf](https://web.dev/web-animations-performance/)
 
 ### 3. HSV to RGB conversion in rave animations
 - **Location:** [controllers/raveControllers.js#L427-L453](controllers/raveControllers.js#L427-L453) (40+ call sites)
-- **Impact:** 🔴 Critical – called 20+ times per frame in some modes
-- **Current code:** `hsvToRgb(hue, sat, val)` recalculates HSV→RGB with trig every call
-- **Fix:** Precompute HSV-to-RGB LUT for 0-360° hue (72 entries at 5° intervals); memoize or cache (h,s,v) tuples
-- **Estimated gain:** 50-70% CPU reduction in rave mode
+- **Impact:** 🔴 Critical – still a major hot path in rave
+- **Current code:** `hsvToRgb()` now uses a 360-entry `HUE_LUT_FULL_SAT` for the very common `s = 1, v ∈ [0,1]` case, and falls back to `hsvToRgbInternal` for other combinations.
+- **Fix (remaining):**
+  - Expand LUT/memoization to cover the dominant `(h,s,v)` patterns actually used by rave modes (e.g., limited `v` steps, small `s` set), and/or
+  - Quantize hue (e.g., 5° steps) and precompute a smaller LUT that still looks good visually.
+- **Estimated gain:** Additional 50-70% CPU reduction in rave mode on top of the current LUT, depending on how many calls hit the fallback path.
 - **Read more:** [Memoization](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/memoize); [HSV→RGB optimization](https://stackoverflow.com/questions/17242144/javascript-convert-hsb-hsv-color-to-rgb-accurately)
 
-### 4. String rendering: cloning and inline require
+### 4. String rendering now reuses buffers and module-level imports
 - **Location:** [utils/displayUtils.js#L19-L63](utils/displayUtils.js#L19-L63)
-- **Impact:** 🟠 High – every scroll frame
-- **Current code:** `structuredClone(boardPixels)` + per-call `require('./pixelOps')` on scroll tick
-- **Fix:** Move `fill` import to module scope; keep single buffer, rotate start index; prebuild/reuse letter matrix
-- **Estimated gain:** 30-40% memory allocation reduction in display loops
+- **Impact:** 🟠 High (✅ already optimized) – per-frame allocations and inline requires removed
+- **Current code:** Imports `letters` and `fill` at module scope; builds `boardPixels` once per display and reuses it while scrolling; `showString` walks the buffer without cloning.
+- **Status:** ✅ **DONE** – structured cloning and inline `require` calls were removed.
+- **Next steps:** Only profile again if very long marquee strings become a bottleneck.
 - **Read more:** [structuredClone](https://developer.mozilla.org/en-US/docs/Web/API/structuredClone); [Tight Loop Best Practices](https://github.com/goldbergyoni/nodebestpractices#5-performance-best-practices)
 
-### 5. Gradient helper: repeated require each call
+### 5. Gradient helper imports are hoisted
 - **Location:** [utils/pixelOps.js#L55-L60](utils/pixelOps.js#L55-L60)
-- **Impact:** 🟠 High – adds per-call overhead in tight loops
-- **Current code:** `gradient()` requires `hexToRgb`/`rgbToHex` every invocation
-- **Fix:** Hoist import to module scope; precompute step values where possible
-- **Estimated gain:** Small but compound in loops (5-10% in tight gradients)
+- **Impact:** 🟠 High (✅ already optimized) – no extra module work per call
+- **Current code:** `const { hexToRgb, rgbToHex } = require('./colorUtils');` lives at module scope; `gradient()` just uses these functions.
+- **Status:** ✅ **DONE** – previous per-call `require` overhead has been removed.
+- **Next steps:** Focus on higher-level call frequency rather than this helper itself.
 - **Read more:** [Node Module Caching](https://nodejs.org/api/modules.html#modules_caching); [Minimizing work](https://developer.mozilla.org/en-US/docs/Web/Performance)
 
 ---
@@ -424,20 +431,25 @@ for (let i = 0; i < barLength; i++) {
 }
 ```
 
-**After (LUT + Memoization):**
+**After (Current LUT + potential memoization):**
 ```javascript
-// Build once
-const HSV_LUT = buildHSVLUT(); // 72 hues × 3 saturations = fast lookup
+// Build once (already implemented for s=1, v=1; extend as needed)
+const HUE_LUT_FULL_SAT = buildHueLUT(); // 360 hues for s=1, v=1
 
-// Use in loop
+// Use in loop (fast path)
 for (let i = 0; i < barLength; i++) {
-  const hue = Math.floor(((i + offset) % barLength) / barLength * 72);
-  const rgb = HSV_LUT[hue][intensityIndex];  // ← 1 lookup, done
+  const hue = (((i + offset) % barLength) / barLength) * 360;
+  const base = HUE_LUT_FULL_SAT[Math.round(hue) % 360];
+  const rgb = {
+    r: Math.round(base.r * intensityMultiplier),
+    g: Math.round(base.g * intensityMultiplier),
+    b: Math.round(base.b * intensityMultiplier)
+  };
   pixels[i] = (rgb.r << 16) | (rgb.g << 8) | rgb.b;
 }
 ```
 
-**Gain:** 50-70% CPU reduction in rave loops
+**Gain:** 50-70% CPU reduction in rave loops when most calls hit the LUT-based fast path
 
 ---
 
@@ -511,20 +523,20 @@ grep "ticks" profile.txt | head -20
 
 ## Migration Strategy
 
-**Step 1: Foundation (Phase 1)**
-- Implement gamma LUT in `utils/pixelOps.js`
+**Step 1: Foundation (Phase 1 – ✅ DONE)**
+- Implement gamma LUT in `utils/pixelOps.js` (now live)
 - Test with simple fill operations
-- Measure: Should see 40-60% CPU drop
+- Measure: Confirm ~40-60% CPU drop vs original `Math.pow` implementation
 
-**Step 2: Animation Caching (Phase 1)**
-- Build HSV→RGB LUT in `controllers/raveControllers.js`
-- Replace all `hsvToRgb()` calls with LUT lookups
-- Measure: Should see 50-70% CPU drop in rave
+**Step 2: Animation Caching (Phase 1 – ✅ BASIC LUT DONE)**
+- Build HSV→RGB LUT in `controllers/raveControllers.js` (360-entry hue LUT for `s=1, v=1` is in place)
+- Extend/adjust LUT or memoization to cover the dominant `(h,s,v)` patterns actually used by rave modes
+- Measure: Target 50-70% CPU drop in rave when most calls hit the fast path
 
-**Step 3: Progress Optimization (Phase 1)**
-- Pre-compute background gradient buffer in `pixelControllers.js`
-- Use `Uint32Array.set()` for per-frame copy
-- Measure: Should see 20-30% CPU drop
+**Step 3: Progress Optimization (Phase 1 – ✅ DONE)**
+- Pre-compute background gradient buffer in `pixelControllers.js` (implemented via `bgBuffer` + `pixels.set`)
+- Keep using `Uint32Array.set()` for per-frame copy
+- Measure: Confirm 20-30% CPU drop vs per-frame gradient computation
 
 **Step 4: Refactor & Utilities (Phase 2-3)**
 - Create helper functions in `utils/helpers.js`:

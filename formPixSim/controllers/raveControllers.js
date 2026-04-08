@@ -15,12 +15,23 @@ const HUE_LUT = Array.from({ length: HUE_LUT_SIZE }, (_, i) => {
 const HSV_CACHE = new Map();
 const HSV_CACHE_LIMIT = 4096;
 
+/**
+ * Normalize hue into the range [0, 360).
+ * @param {number} h - Hue value in degrees.
+ * @returns {number} Normalized hue.
+ */
 function normalizeHue(h) {
 	h = h % 360;
 	if (h < 0) h += 360;
 	return h;
 }
 
+/**
+ * Convert hue and brightness into RGB using the hue lookup table.
+ * @param {number} h - Hue in degrees.
+ * @param {number} v - Value/brightness from 0 to 1.
+ * @returns {{r: number, g: number, b: number}} RGB object.
+ */
 function hueLutToRgb(h, v) {
 	const normalizedHue = normalizeHue(h);
 	const lutIndex = Math.floor(normalizedHue / HUE_LUT_STEP) % HUE_LUT_SIZE;
@@ -32,6 +43,13 @@ function hueLutToRgb(h, v) {
 	};
 }
 
+/**
+ * Convert HSV color to RGB.
+ * @param {number} h - Hue in degrees.
+ * @param {number} s - Saturation from 0 to 1.
+ * @param {number} v - Value/brightness from 0 to 1.
+ * @returns {{r: number, g: number, b: number}} RGB object.
+ */
 function calculateHsvToRgb(h, s, v) {
 	const c = v * s;
 	const hh = normalizeHue(h) / 60;
@@ -63,6 +81,9 @@ function calculateHsvToRgb(h, s, v) {
 
 /**
  * POST /api/rave - Create rave visuals on the bar with flashing rainbow colors
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 async function raveController(req, res) {
 	try {
@@ -455,6 +476,9 @@ async function raveController(req, res) {
 
 /**
  * POST /api/rave/stop - Stop the rave visuals
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 async function raveStopController(req, res) {
 	try {

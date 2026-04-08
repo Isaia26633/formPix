@@ -21,6 +21,7 @@ function handleVBTimer() {
 				fill(pixels, 0x000000, 0, config.barPixels)
 				ws281x.render()
 
+				state.pollData = {}
 				socket.emit('classUpdate')
 				
 				state.timerData = newTimerData
