@@ -43,7 +43,8 @@ function handleClassUpdate(webIo) {
 
 		if (util.isDeepStrictEqual(newPollData, pollData)) return
 
-		logger.debug('Class update received', { pollStatus: newPollData.status, pollPrompt: newPollData.prompt });
+		const responseCount = newPollData.responses ? Object.keys(newPollData.responses).length : 0;
+		logger.debug(`Formbar classUpdate: status=${newPollData.status}, prompt="${newPollData.prompt || ''}", responses=${newPollData.totalResponses}/${newPollData.totalResponders}, options=${responseCount}, timerActive=${timerData.active}`);
 
 		// Only clear the bar when poll is cleared (no responses), not when it's just ended
 		if (!newPollData.status && (!newPollData.responses || Object.keys(newPollData.responses).length === 0)) {
@@ -198,21 +199,13 @@ function handleClassUpdate(webIo) {
 
 						currentPixel += pixelsToFill
 
-						if (
-							responseNumber < poll.responses - 1 ||
-							pollNumber < nonEmptyPolls
-						) {
+						const isLastResponse = responseNumber === poll.responses - 1 && pollNumber >= nonEmptyPolls
+						if (!blind && !isLastResponse) {
 							if (currentPixel < config.barPixels) {
 								pixels[currentPixel] = 0xFF0080
+								currentPixel++
 							}
 						}
-					}
-
-					if (
-						!blind &&
-						poll.responses > 0
-					) {
-						if (currentPixel < config.barPixels) currentPixel++
 					}
 					pollNumber++
 				}

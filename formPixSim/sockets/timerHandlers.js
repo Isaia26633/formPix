@@ -27,6 +27,7 @@ function handleVBTimer() {
 				fill(pixels, 0x000000, 0, config.barPixels)
 				ws281x.render()
 
+				state.pollData = {}
 				socket.emit('classUpdate')
 				
 				state.timerData = newTimerData
@@ -34,7 +35,7 @@ function handleVBTimer() {
 			return
 		}
 
-		logger.debug('Timer update', { timeLeft: newTimerData.timeLeft, startTime: newTimerData.startTime });
+		logger.debug(`Formbar vbTimer: timeLeft=${newTimerData.timeLeft}s / ${newTimerData.startTime}s`);
 
 		if (newTimerData.timeLeft > 0) {
 			let timeLeftPixels = Math.round(config.barPixels * (newTimerData.timeLeft / newTimerData.startTime))
