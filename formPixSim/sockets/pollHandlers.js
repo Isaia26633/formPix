@@ -198,21 +198,13 @@ function handleClassUpdate(webIo) {
 
 						currentPixel += pixelsToFill
 
-						if (
-							responseNumber < poll.responses - 1 ||
-							pollNumber < nonEmptyPolls
-						) {
+						const isLastResponse = responseNumber === poll.responses - 1 && pollNumber >= nonEmptyPolls
+						if (!blind && !isLastResponse) {
 							if (currentPixel < config.barPixels) {
 								pixels[currentPixel] = 0xFF0080
+								currentPixel++
 							}
 						}
-					}
-
-					if (
-						!blind &&
-						poll.responses > 0
-					) {
-						if (currentPixel < config.barPixels) currentPixel++
 					}
 					pollNumber++
 				}
