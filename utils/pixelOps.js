@@ -2,7 +2,21 @@
  * Pixel operations - fill, gradient, and display functions
  */
 
+const { hexToRgb, rgbToHex } = require('./colorUtils');
+
 const GAMMA = 2.8;
+
+// Precomputed gamma correction lookup table for 0-255 channel values.
+// This avoids expensive Math.pow calls in tight per-pixel loops.
+const GAMMA_LUT = (() => {
+	const table = new Array(256);
+	for (let i = 0; i < 256; i++) {
+		// Match previous behaviour: round(Math.pow(i / 255, GAMMA) * 255)
+		// Values are clamped implicitly by the 0-255 domain.
+		table[i] = Math.round(Math.pow(i / 255.0, GAMMA) * 255);
+	}
+	return table;
+})();
 
 /**
  * Applies gamma correction to a single channel value (0-255).
@@ -12,7 +26,12 @@ const GAMMA = 2.8;
  * @returns {number} The gamma corrected channel value.
  */
 function gammaCorrect(value) {
-	return Math.round(Math.pow(value / 255.0, GAMMA) * 255);
+	// Clamp to the 0-255 table range and coerce to integer index.
+	let v = value;
+	if (v < 0) v = 0;
+	else if (v > 255) v = 255;
+	v = v | 0;
+	return GAMMA_LUT[v];
 }
 
 /**
@@ -52,26 +71,25 @@ function fill(pixels, color, start = 0, length = pixels.length) {
  * @param {number} [length=pixels.length] - The length of the gradient.
  */
 function gradient(pixels, startColor, endColor, start = 0, length = pixels.length) {
-	const { hexToRgb, rgbToHex } = require('./colorUtils');
-	
-	startColor = hexToRgb(startColor)
-	endColor = hexToRgb(endColor)
+	startColor = hexToRgb(startColor);
+	endColor = hexToRgb(endColor);
 
-	let currentColor = startColor
+	let currentColor = startColor;
 
-	length = Math.floor(length)
-	if (length >= pixels.length - start) length = pixels.length - start
+	length = Math.floor(length);
+	if (length >= pixels.length - start) length = pixels.length - start;
+	if (length <= 0) return;
 
-	let stepColor = startColor.map((start, i) => (endColor[i] - start) / (length - 1))
+	const stepColor = startColor.map((start, i) => (endColor[i] - start) / (length - 1 || 1));
 
 	for (let i = 0; i < length; i++) {
 		currentColor = [
 			Math.round(startColor[0] + stepColor[0] * i),
 			Math.round(startColor[1] + stepColor[1] * i),
 			Math.round(startColor[2] + stepColor[2] * i)
-		]
+		];
 
-		pixels[i + start] = rgbToHex(currentColor.map(gammaCorrect))
+		pixels[i + start] = rgbToHex(currentColor.map(gammaCorrect));
 	}
 }
 

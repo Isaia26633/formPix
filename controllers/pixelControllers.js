@@ -185,9 +185,16 @@ function animateProgress(start, length, startingFill, duration, interval, bg1, b
 		]);
 	}
 
+	// Precompute the static background gradient once and reuse it each frame.
+	const bgBuffer = new Uint32Array(length);
+	gradient(bgBuffer, bg1, bg2, 0, length);
+
 	if (duration === undefined) {
 		//fills the bar if no duration is provided
-		gradient(pixels, bg1, bg2, start, length);
+		// Copy the precomputed background once
+		if (length > 0) {
+			pixels.set(bgBuffer, start);
+		}
 		for (let i = 0; i < length; i++) {
 			pixels[start + i] = fgGradientColors[i];
 		}
@@ -210,8 +217,10 @@ function animateProgress(start, length, startingFill, duration, interval, bg1, b
 		const currentPercent = startPercent + (endPercent - startPercent) * easedProgress;
 		const fillLength = Math.floor((currentPercent / 100) * length);
 
-		// Draw background gradient
-		gradient(pixels, bg1, bg2, start, length);
+		// Draw background gradient from precomputed buffer
+		if (length > 0) {
+			pixels.set(bgBuffer, start);
+		}
 
 		// Draw foreground using pre-calculated gradient colors (reveals the gradient as it fills)
 		for (let i = 0; i < fillLength; i++) {
@@ -301,7 +310,7 @@ async function fillController(req, res) {
 		logger.info('API Call: /api/fill', { query: req.query });
 		const { pixels, config, ws281x } = require('../state');
 
-		let { color, start = 0, length = pixels.length } = req.query
+		let { color, start = 0, length = config.barPixels } = req.query
 
 		color = textToHexColor(color)
 
@@ -322,6 +331,17 @@ async function fillController(req, res) {
 
 		start = Number(start)
 		length = Number(length)
+
+		const barLength = config.barPixels;
+		if (start < 0) start = 0;
+		if (start >= barLength) {
+			res.status(400).json({ error: 'start must be within barPixels' });
+			return;
+		}
+		if (length < 0) length = 0;
+		if (start + length > barLength) {
+			length = barLength - start;
+		}
 
 		fill(pixels, color, start, length)
 		ws281x.render()
