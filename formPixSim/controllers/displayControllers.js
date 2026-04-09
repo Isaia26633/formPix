@@ -5,7 +5,35 @@
 const logger = require('../utils/logger');
 const { textToHexColor } = require('../utils/colorUtils');
 const { displayBoard } = require('../utils/displayUtils');
-const { text } = require('express');
+
+function getRequestorIdentity(data) {
+	const source = data?.user || data?.data || data || {};
+	return {
+		id: source.id ?? source._id ?? source.userId ?? 'unknown',
+		email: source.email ?? source.mail ?? 'unknown'
+	};
+}
+
+function insertSubmission(db, id, email, text) {
+	return new Promise((resolve, reject) => {
+		if (!db) {
+			reject(new Error('Database connection is not available'));
+			return;
+		}
+
+		db.run(
+			'INSERT INTO submissions (id, email, text) VALUES (?, ?, ?)',
+			[String(id ?? 'unknown'), String(email ?? 'unknown'), String(text ?? '')],
+			function onInsert(err) {
+				if (err) {
+					reject(err);
+					return;
+				}
+				resolve(this.lastID);
+			}
+		);
+	});
+}
 
 /**
  * POST /api/say - Display text on the LED board
@@ -22,10 +50,9 @@ async function sayController(req, res) {
 
 		let { text, textColor, backgroundColor, scroll } = req.query;
 
-		let API_KEY = req.headers.api
+		const API_KEY = req.headers.api;
 
-		let reqOptions =
-		{
+		const reqOptions = {
 			method: 'GET',
 			headers: {
 				'API': API_KEY,
@@ -40,19 +67,20 @@ async function sayController(req, res) {
 			?? ''
 		).replace(/\/+$/, '');
 
-		fetch(`${FORMBAR_URL}/api/me`, reqOptions)
-			.then((response) => {
-				// Convert received data to JSON
-				return response.json();
-			})
-			.then((data) => {
-				// Log the data if the request is successful
-				console.log(data);
-			})
-			.catch((err) => {
-				// If there's a problem, handle it...
-				if (err) console.log('connection closed due to errors', err);
-			});
+		let speaker = { id: 'unknown', email: 'unknown' };
+		if (FORMBAR_URL) {
+			try {
+				const response = await fetch(`${FORMBAR_URL}/api/me`, reqOptions);
+				if (response.ok) {
+					const data = await response.json();
+					speaker = getRequestorIdentity(data);
+				} else {
+					logger.warn('Unable to resolve speaker identity', { status: response.status });
+				}
+			} catch (err) {
+				logger.warn('Unable to resolve speaker identity', { error: err.message });
+			}
+		}
 
 		if (!text) {
 			res.status(400).json({ source: 'Formpix', error: 'You did not provide any text' })
@@ -89,6 +117,7 @@ async function sayController(req, res) {
 
 		// Store the current display message
 		state.currentDisplayMessage = text; state.lastDisplayUpdate = new Date().toISOString();
+		await insertSubmission(state.db, speaker.id, speaker.email, text);
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
 		console.error('Error in sayController:', err);
