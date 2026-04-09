@@ -73,144 +73,144 @@ function handleClassUpdate() {
 
 			// if (newPollData.totalResponses === 4 && newPollData.totalResponders === 20) {
 			// 	if (player) player.play('./sfx/memeSFX/snoop.wav')
-			} if (!timerData.active) {
-				fill(pixels, 0x808080, 0, config.barPixels)
+		} if (!timerData.active) {
+			fill(pixels, 0x808080, 0, config.barPixels)
 
-				for (let poll of Object.values(newPollData.responses)) {
-					poll.color = parseInt(poll.color.slice(1), 16)
-				}
+			for (let poll of Object.values(newPollData.responses)) {
+				poll.color = parseInt(poll.color.slice(1), 16)
+			}
 
-				if (pollResponses == newPollData.totalResponders && pollResponses > 0 && !newPollData.multiRes) {
-					blind = false
+			if (pollResponses == newPollData.totalResponders && pollResponses > 0 && !newPollData.multiRes) {
+				blind = false
 
-					if (newPollData.prompt == 'Thumbs?') {
-						fill(pixels, 0x000000, config.barPixels)
+				if (newPollData.prompt == 'Thumbs?') {
+					fill(pixels, 0x000000, config.barPixels)
 
-						const findResponse = (answerText) => {
-							return responsesArray.find(r => r.answer === answerText)
-						}
-
-						const upResponses = findResponse('Up')
-						if (upResponses && upResponses.responses == newPollData.totalResponders) {
-							gradient(pixels, 0x0000FF, 0xFF0000, 0, config.barPixels)
-							let text = [
-								'Max Gamer',
-								'Skibidi Rizz!',
-								'Plus 100 Aura'
-							]
-							let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0x00FF00, 0x000000, config, boardIntervals, ws281x)
-							if (!display) return
-							boardIntervals.push(display)
-
-							playSound({ formbar: 'sfx_success01.wav' });
-
-							specialDisplay = true
-							return
-						}
-
-						const wiggleResponse = findResponse('Wiggle')
-						if (wiggleResponse && wiggleResponse.responses == newPollData.totalResponders) {
-							playSound({ meme: 'bruh.wav' });
-
-							let text = [
-								'Wiggle Nation: Where democracy meets indecision!',
-								'Wiggle-o-mania: The cure for decision-making paralysis!',
-								'Wiggle Wiggle Wiggle'
-							]
-
-							text = text[Math.floor(Math.random() * text.length)]
-
-							let display = displayBoard(pixels, text, 0x00FFFF, 0x000000, config, boardIntervals, ws281x)
-							if (!display) return
-							boardIntervals.push(display)
-							specialDisplay = true
-						}
-
-						const downResponse = findResponse('Down')
-						if (downResponse && downResponse.responses == newPollData.totalResponders) {
-							playSound({ meme: 'womp-womp.wav' });
-							let text = [
-								'Git Gud lol',
-								'Skill Issue',
-								'Guh, Buh, Fluh, do better',
-								'Imagine getting all downs, could never be me'
-							]
-							let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0xFF0000, 0x000000, config, boardIntervals, ws281x)
-							if (!display) return
-							boardIntervals.push(display)
-							specialDisplay = true
-						}
+					const findResponse = (answerText) => {
+						return responsesArray.find(r => r.answer === answerText)
 					}
-				}
 
-				let nonEmptyPolls = -1
-				for (let poll of Object.values(newPollData.responses)) {
-					if (poll.responses > 0) {
-						nonEmptyPolls++
+					const upResponses = findResponse('Up')
+					if (upResponses && upResponses.responses == newPollData.totalResponders) {
+						gradient(pixels, 0x0000FF, 0xFF0000, 0, config.barPixels)
+						let text = [
+							'Max Gamer',
+							'Skibidi Rizz!',
+							'Plus 100 Aura'
+						]
+						let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0x00FF00, 0x000000, config, boardIntervals, ws281x)
+						if (!display) return
+						boardIntervals.push(display)
+
+						playSound({ formbar: 'sfx_success01.wav' });
+
+						specialDisplay = true
+						return
 					}
-				}
 
-				let totalResponses = 0
-				for (let poll of Object.values(newPollData.responses)) {
-					totalResponses += poll.responses
-				}
+					const wiggleResponse = findResponse('Wiggle')
+					if (wiggleResponse && wiggleResponse.responses == newPollData.totalResponders) {
+						playSound({ meme: 'bruh.wav' });
 
-				if (newPollData.multiRes) {
-					if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
-					else pixelsPerStudent = Math.ceil((config.barPixels - nonEmptyPolls) / totalResponses / newPollData.totalResponders)
-				} else {
-					if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
-					else pixelsPerStudent = Math.ceil((config.barPixels - nonEmptyPolls) / newPollData.totalResponders)
-				}
+						let text = [
+							'Wiggle Nation: Where democracy meets indecision!',
+							'Wiggle-o-mania: The cure for decision-making paralysis!',
+							'Wiggle Wiggle Wiggle'
+						]
 
-				let currentPixel = 0
-				let pollNumber = 0
-				for (let poll of Object.values(newPollData.responses)) {
-					for (let responseNumber = 0; responseNumber < poll.responses; responseNumber++) {
-						let color = poll.color
+						text = text[Math.floor(Math.random() * text.length)]
 
-						if (blind) color = 0xFF8000
-
-						let pixelsToFill = Math.min(pixelsPerStudent, config.barPixels - currentPixel)
-
-						if (pixelsToFill <= 0) break
-
-						fill(pixels, color, currentPixel, pixelsToFill)
-
-						currentPixel += pixelsToFill
-
-						const isLastResponse = responseNumber === poll.responses - 1 && pollNumber >= nonEmptyPolls
-						if (!blind && !isLastResponse) {
-							if (currentPixel < config.barPixels) {
-								pixels[currentPixel] = 0xFF0080
-								currentPixel++
-							}
-						}
+						let display = displayBoard(pixels, text, 0x00FFFF, 0x000000, config, boardIntervals, ws281x)
+						if (!display) return
+						boardIntervals.push(display)
+						specialDisplay = true
 					}
-					pollNumber++
+
+					const downResponse = findResponse('Down')
+					if (downResponse && downResponse.responses == newPollData.totalResponders) {
+						playSound({ meme: 'womp-womp.wav' });
+						let text = [
+							'Git Gud lol',
+							'Skill Issue',
+							'Guh, Buh, Fluh, do better',
+							'Imagine getting all downs, could never be me'
+						]
+						let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0xFF0000, 0x000000, config, boardIntervals, ws281x)
+						if (!display) return
+						boardIntervals.push(display)
+						specialDisplay = true
+					}
 				}
 			}
 
-			if (!specialDisplay) {
-				text = `${newPollData.totalResponses}/${newPollData.totalResponders} `
-				if (newPollData.prompt) pollText = newPollData.prompt
-
-				const boardStartPixel = config.barPixels
-				const boardLength = config.boards * 32 * 8
-				fill(pixels, 0x000000, boardStartPixel, boardLength)
-
-				let display = displayBoard(pixels, text, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
-				if (display) boardIntervals.push(display)
-
-				display = displayBoard(pixels, pollText, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x, getStringColumnLength(text))
-				if (display) boardIntervals.push(display)
+			let nonEmptyPolls = -1
+			for (let poll of Object.values(newPollData.responses)) {
+				if (poll.responses > 0) {
+					nonEmptyPolls++
+				}
 			}
 
-			state.pollData = newPollData
+			let totalResponses = 0
+			for (let poll of Object.values(newPollData.responses)) {
+				totalResponses += poll.responses
+			}
 
-			ws281x.render()
+			if (newPollData.multiRes) {
+				if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
+				else pixelsPerStudent = Math.ceil((config.barPixels - nonEmptyPolls) / totalResponses / newPollData.totalResponders)
+			} else {
+				if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
+				else pixelsPerStudent = Math.ceil((config.barPixels - nonEmptyPolls) / newPollData.totalResponders)
+			}
+
+			let currentPixel = 0
+			let pollNumber = 0
+			for (let poll of Object.values(newPollData.responses)) {
+				for (let responseNumber = 0; responseNumber < poll.responses; responseNumber++) {
+					let color = poll.color
+
+					if (blind) color = 0xFF8000
+
+					let pixelsToFill = Math.min(pixelsPerStudent, config.barPixels - currentPixel)
+
+					if (pixelsToFill <= 0) break
+
+					fill(pixels, color, currentPixel, pixelsToFill)
+
+					currentPixel += pixelsToFill
+
+					const isLastResponse = responseNumber === poll.responses - 1 && pollNumber >= nonEmptyPolls
+					if (!blind && !isLastResponse) {
+						if (currentPixel < config.barPixels) {
+							pixels[currentPixel] = 0xFF0080
+							currentPixel++
+						}
+					}
+				}
+				pollNumber++
+			}
 		}
+
+		if (!specialDisplay) {
+			text = `${newPollData.totalResponses}/${newPollData.totalResponders} `
+			if (newPollData.prompt) pollText = newPollData.prompt
+
+			const boardStartPixel = config.barPixels
+			const boardLength = config.boards * 32 * 8
+			fill(pixels, 0x000000, boardStartPixel, boardLength)
+
+			let display = displayBoard(pixels, text, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
+			if (display) boardIntervals.push(display)
+
+			display = displayBoard(pixels, pollText, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x, getStringColumnLength(text))
+			if (display) boardIntervals.push(display)
+		}
+
+		state.pollData = newPollData
+
+		ws281x.render()
 	}
+}
 
 module.exports = {
 	handleClassUpdate
