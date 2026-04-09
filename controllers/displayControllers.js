@@ -5,10 +5,41 @@
 const logger = require('../utils/logger');
 const { textToHexColor } = require('../utils/colorUtils');
 const { displayBoard } = require('../utils/displayUtils');
-const { text } = require('express');
+
+function getRequestorIdentity(data) {
+	const source = data?.user || data?.data || data || {};
+	return {
+		id: source.id ?? source._id ?? source.userId ?? 'unknown',
+		email: source.email ?? source.mail ?? 'unknown'
+	};
+}
+
+function insertSubmission(db, id, email, text) {
+	return new Promise((resolve, reject) => {
+		if (!db) {
+			reject(new Error('Database connection is not available'));
+			return;
+		}
+
+		db.run(
+			'INSERT INTO submissions (id, email, text) VALUES (?, ?, ?)',
+			[String(id ?? 'unknown'), String(email ?? 'unknown'), String(text ?? '')],
+			function onInsert(err) {
+				if (err) {
+					reject(err);
+					return;
+				}
+				resolve(this.lastID);
+			}
+		);
+	});
+}
 
 /**
  * POST /api/say - Display text on the LED board
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 async function sayController(req, res) {
 	try {
@@ -18,6 +49,38 @@ async function sayController(req, res) {
 		const { pixels, config, boardIntervals, ws281x } = state;
 
 		let { text, textColor, backgroundColor, scroll } = req.query;
+
+		const API_KEY = req.headers.api;
+
+		const reqOptions = {
+			method: 'GET',
+			headers: {
+				'API': API_KEY,
+				'Content-Type': 'application/json'
+			}
+		};
+
+		const FORMBAR_URL = (
+			process.env.formbarUrl
+			?? process.env.FORMBAR_URL
+			?? state.config.formbarUrl
+			?? ''
+		).replace(/\/+$/, '');
+
+		let speaker = { id: 'unknown', email: 'unknown' };
+		if (FORMBAR_URL) {
+			try {
+				const response = await fetch(`${FORMBAR_URL}/api/me`, reqOptions);
+				if (response.ok) {
+					const data = await response.json();
+					speaker = getRequestorIdentity(data);
+				} else {
+					logger.warn('Unable to resolve speaker identity', { status: response.status });
+				}
+			} catch (err) {
+				logger.warn('Unable to resolve speaker identity', { error: err.message });
+			}
+		}
 
 		if (!text) {
 			res.status(400).json({ source: 'Formpix', error: 'You did not provide any text' })
@@ -53,7 +116,8 @@ async function sayController(req, res) {
 		boardIntervals.push(display)
 
 		// Store the current display message
-		state.currentDisplayMessage = text;	state.lastDisplayUpdate = new Date().toISOString();
+		state.currentDisplayMessage = text; state.lastDisplayUpdate = new Date().toISOString();
+		await insertSubmission(state.db, speaker.id, speaker.email, text);
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
 		console.error('Error in sayController:', err);
@@ -63,6 +127,9 @@ async function sayController(req, res) {
 
 /**
  * GET /api/getDisplay - Get the current message displayed on the LED board
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Resolves when the response is sent.
  */
 async function getDisplayController(req, res) {
 	try {
