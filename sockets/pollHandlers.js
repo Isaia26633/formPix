@@ -59,21 +59,21 @@ function handleClassUpdate() {
 
 			const responsesArray = getResponsesArray()
 
-		for (let poll of Object.values(newPollData.responses)) {
-			pollResponses += poll.responses
-		}
+			for (let poll of Object.values(newPollData.responses)) {
+				pollResponses += poll.responses
+			}
 
-		if (newPollData.totalResponses === 6 && newPollData.totalResponders === 9) {
-			if (player) player.play('./sfx/memeSFX/noice.wav')
-		}
+			// if (newPollData.totalResponses === 6 && newPollData.totalResponders === 9) {
+			// 	if (player) player.play('./sfx/memeSFX/noice.wav')
+			// }
 
-		if (newPollData.totalResponses === 6 && newPollData.totalResponders === 7) {
-			if (player) player.play('./sfx/memeSFX/brainrot.wav')
-		}
+			// if (newPollData.totalResponses === 6 && newPollData.totalResponders === 7) {
+			// 	if (player) player.play('./sfx/memeSFX/brainrot.wav')
+			// }
 
-		if (newPollData.totalResponses === 4 && newPollData.totalResponders === 20) {
-			if (player) player.play('./sfx/memeSFX/snoop.wav')
-		}			if (!timerData.active) {
+			// if (newPollData.totalResponses === 4 && newPollData.totalResponders === 20) {
+			// 	if (player) player.play('./sfx/memeSFX/snoop.wav')
+			} if (!timerData.active) {
 				fill(pixels, 0x808080, 0, config.barPixels)
 
 				for (let poll of Object.values(newPollData.responses)) {
@@ -98,11 +98,11 @@ function handleClassUpdate() {
 								'Skibidi Rizz!',
 								'Plus 100 Aura'
 							]
-							let display = displayBoard(pixels, text, 0x00FF00, 0x000000, config, boardIntervals, ws281x)
+							let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0x00FF00, 0x000000, config, boardIntervals, ws281x)
 							if (!display) return
 							boardIntervals.push(display)
 
-playSound({ formbar: 'sfx_success01.wav' });
+							playSound({ formbar: 'sfx_success01.wav' });
 
 							specialDisplay = true
 							return
@@ -135,7 +135,7 @@ playSound({ formbar: 'sfx_success01.wav' });
 								'Guh, Buh, Fluh, do better',
 								'Imagine getting all downs, could never be me'
 							]
-							let display = displayBoard(pixels, text, 0xFF0000, 0x000000, config, boardIntervals, ws281x)
+							let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0xFF0000, 0x000000, config, boardIntervals, ws281x)
 							if (!display) return
 							boardIntervals.push(display)
 							specialDisplay = true
@@ -168,6 +168,7 @@ playSound({ formbar: 'sfx_success01.wav' });
 				for (let poll of Object.values(newPollData.responses)) {
 					for (let responseNumber = 0; responseNumber < poll.responses; responseNumber++) {
 						let color = poll.color
+
 						if (blind) color = 0xFF8000
 
 						let pixelsToFill = Math.min(pixelsPerStudent, config.barPixels - currentPixel)
@@ -175,23 +176,16 @@ playSound({ formbar: 'sfx_success01.wav' });
 						if (pixelsToFill <= 0) break
 
 						fill(pixels, color, currentPixel, pixelsToFill)
+
 						currentPixel += pixelsToFill
 
-						if (
-							responseNumber < poll.responses - 1 ||
-							pollNumber < nonEmptyPolls
-						) {
+						const isLastResponse = responseNumber === poll.responses - 1 && pollNumber >= nonEmptyPolls
+						if (!blind && !isLastResponse) {
 							if (currentPixel < config.barPixels) {
 								pixels[currentPixel] = 0xFF0080
+								currentPixel++
 							}
 						}
-					}
-
-					if (
-						!blind &&
-						poll.responses > 0
-					) {
-						if (currentPixel < config.barPixels) currentPixel++
 					}
 					pollNumber++
 				}
@@ -217,7 +211,6 @@ playSound({ formbar: 'sfx_success01.wav' });
 			ws281x.render()
 		}
 	}
-}
 
 module.exports = {
 	handleClassUpdate

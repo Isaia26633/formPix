@@ -108,17 +108,17 @@ async function onServerStarted() {
 state.webIo = webIo;
 state.ws281x.render = renderToWebClients;
 
+// Main page
+app.get('/', renderIndexPage);
+
 // API Routes
-app.use(checkConnection);
-app.use(checkPermissions);
-app.use(validateQueryParams);
+app.use('/api', checkConnection);
+app.use('/api', checkPermissions);
+app.use('/api', validateQueryParams);
 app.use('/api', pixelRoutes);
 app.use('/api', displayRoutes);
 app.use('/api', soundRoutes(webIo));
 app.use('/api', infoRoutes);
-
-// Main page
-app.get('/', renderIndexPage);
 
 // Error handling
 app.use(handle404);
