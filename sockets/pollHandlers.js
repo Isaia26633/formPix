@@ -22,7 +22,6 @@ function handleClassUpdate() {
 		const state = require('../state');
 		const { pixels, config, boardIntervals, ws281x, pollData, timerData } = state;
 		const newPollData = classroomData.poll
-		let pixelsPerStudent
 		let text = ''
 		let pollText = 'Poll'
 		let pollResponses = 0
@@ -143,51 +142,45 @@ function handleClassUpdate() {
 				}
 			}
 
-			let nonEmptyPolls = -1
-			for (let poll of Object.values(newPollData.responses)) {
-				if (poll.responses > 0) {
-					nonEmptyPolls++
-				}
-			}
-
+			const polls = Object.values(newPollData.responses)
 			let totalResponses = 0
-			for (let poll of Object.values(newPollData.responses)) {
+			for (let poll of polls) {
 				totalResponses += poll.responses
 			}
 
-			if (newPollData.multiRes) {
-				if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
-				else pixelsPerStudent = Math.ceil((config.barPixels - nonEmptyPolls) / totalResponses / newPollData.totalResponders)
-			} else {
-				if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
-				else pixelsPerStudent = Math.ceil((config.barPixels - nonEmptyPolls) / newPollData.totalResponders)
-			}
-
 			let currentPixel = 0
-			let pollNumber = 0
-			for (let poll of Object.values(newPollData.responses)) {
-				for (let responseNumber = 0; responseNumber < poll.responses; responseNumber++) {
-					let color = poll.color
+			if (totalResponses > 0) {
+				const separatorCount = blind ? 0 : Math.max(totalResponses - 1, 0)
+				const fillablePixels = Math.max(0, config.barPixels - separatorCount)
+				const basePixelsPerResponse = Math.floor(fillablePixels / totalResponses)
+				let remainderPixels = fillablePixels % totalResponses
+				let responseIndex = 0
 
-					if (blind) color = 0xFF8000
+				for (let poll of polls) {
+					for (let responseNumber = 0; responseNumber < poll.responses; responseNumber++) {
+						let color = blind ? 0xFF8000 : poll.color
+						let pixelsToFill = basePixelsPerResponse
 
-					let pixelsToFill = Math.min(pixelsPerStudent, config.barPixels - currentPixel)
+						if (remainderPixels > 0) {
+							pixelsToFill++
+							remainderPixels--
+						}
 
-					if (pixelsToFill <= 0) break
+						pixelsToFill = Math.min(pixelsToFill, config.barPixels - currentPixel)
+						if (pixelsToFill > 0) {
+							fill(pixels, color, currentPixel, pixelsToFill)
+							currentPixel += pixelsToFill
+						}
 
-					fill(pixels, color, currentPixel, pixelsToFill)
-
-					currentPixel += pixelsToFill
-
-					const isLastResponse = responseNumber === poll.responses - 1 && pollNumber >= nonEmptyPolls
-					if (!blind && !isLastResponse) {
-						if (currentPixel < config.barPixels) {
+						const isLastResponse = responseIndex === totalResponses - 1
+						if (!blind && !isLastResponse && currentPixel < config.barPixels) {
 							pixels[currentPixel] = 0xFF0080
 							currentPixel++
 						}
+
+						responseIndex++
 					}
 				}
-				pollNumber++
 			}
 		}
 
