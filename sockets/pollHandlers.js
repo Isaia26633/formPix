@@ -72,7 +72,7 @@ function handleClassUpdate() {
 
 			// if (newPollData.totalResponses === 4 && newPollData.totalResponders === 20) {
 			// 	if (player) player.play('./sfx/memeSFX/snoop.wav')
-		} if (!timerData.active) {
+			if (!timerData.active) {
 			fill(pixels, 0x808080, 0, config.barPixels)
 
 			for (let poll of Object.values(newPollData.responses)) {
@@ -202,6 +202,7 @@ function handleClassUpdate() {
 		state.pollData = newPollData
 
 		ws281x.render()
+		}
 	}
 }
 
