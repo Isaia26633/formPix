@@ -7,14 +7,23 @@ const { displayBoard, getStringColumnLength } = require('../utils/displayUtils')
 const state = require('../state');
 const logger = require('../utils/logger');
 
+/**
+ * @typedef {{ interval?: ReturnType<typeof setInterval> }} BoardInterval
+ * @typedef {{ message?: string }} SocketError
+ * @typedef {{ connect: () => void, emit: (event: string, payload?: unknown) => void }} ClientSocket
+ */
+
 
 /**
  * Handle connection error
+ * @param {ClientSocket} socket User socket instance
+ * @param {BoardInterval[]} boardIntervals Display interval records for the board
+ * @returns {(error: SocketError) => void} Connection error callback
  */
 function handleConnectError(socket, boardIntervals) {
 	return (error) => {
-		if (error.message == 'xhr poll error') console.log('no connection');
-		else console.log(error.message);
+		if (error.message == 'xhr poll error') logger.warn('Formbar connection lost - retrying in 5s');
+		else logger.error(`Formbar connect error: ${error.message}`);
 
 		state.connected = false
 
@@ -34,12 +43,16 @@ function handleConnectError(socket, boardIntervals) {
 }
 
 /**
- * Handle connect
+ * Connect to a class and the display.
+ * @param {ClientSocket} socket User socket instance
+ * @param {BoardInterval[]} boardIntervals Display interval records for the board
+ * @returns {() => void} Connect event callback
  */
 function handleConnect(socket, boardIntervals) {
 	return () => {
 
 		state.connected = true
+		logger.info('Connected to formbar - requesting active class');
 
 		socket.emit('getActiveClass', state.config.api);
 
@@ -53,6 +66,8 @@ function handleConnect(socket, boardIntervals) {
 
 /**
  * Request active class update
+ * @param {ClientSocket} socket User socket instance
+ * @returns {() => void} Class update request callback
  */
 function handleRequestClassUpdate(socket) {
 	return () => {
@@ -62,7 +77,10 @@ function handleRequestClassUpdate(socket) {
 
 
 /**
- * Handle set class
+ * Get class info and send update message
+ * @param {ClientSocket} socket User socket instance
+ * @param {BoardInterval[]} boardIntervals Display interval records for the board
+ * @returns {(userClassId: string | null | undefined) => void} Set class callback
  */
 function handleSetClass(socket, boardIntervals) {
 	return (userClassId) => {
@@ -72,7 +90,7 @@ function handleSetClass(socket, boardIntervals) {
 			const { pixels, config, ws281x } = state;
 			fill(pixels, 0x000000, 0, config.barPixels)
 
-			logger.info('No active class - cleared display');
+			logger.info('Formbar setClass: null - no active class, cleared display');
 
 			let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x, 0, null, 100)
 			if (!display) return
@@ -80,15 +98,9 @@ function handleSetClass(socket, boardIntervals) {
 
 			ws281x.render()
 		} else {
+			logger.info(`Formbar setClass: ${userClassId}`);
 			socket.emit('classUpdate')
 			socket.emit('vbTimer')
-			if (!state.classRefreshed) {
-				state.classRefreshed = true;
-
-				logger.info(`Class update received - New class ID: ${userClassId}`);
-				
-				handleRequestClassUpdate(socket)();
-			}
 		}
 
 		state.classId = userClassId;

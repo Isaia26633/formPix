@@ -9,14 +9,31 @@ const { displayBoard, getStringColumnLength } = require('../utils/displayUtils')
 const PIXELS_PER_LETTER = 5;
 
 /**
+ * @typedef {{fetchSockets: () => Promise<Array<{emit: (event: string, payload?: unknown) => void}>>}} WebIo
+ * @typedef {{ poll: Record<string, unknown> }} ClassroomData
+ */
+
+/**
+ * Emit a sound file to all connected browser clients.
+ * @param {WebIo} webIo - Socket.io server instance.
+ * @param {string} file - Relative sound file path.
+ * @returns {Promise<void>} Resolves after all emits complete.
+ */
+async function emitSoundToWebClients(webIo, file) {
+	let sockets = await webIo.fetchSockets()
+	for (let socket of sockets) socket.emit('play', file)
+}
+
+/**
  * Handle class update with poll data
+ * @param {WebIo} webIo socket.io server instance
+ * @returns {(classroomData: ClassroomData) => void} Class update callback
  */
 function handleClassUpdate(webIo) {
 	return (classroomData) => {
 		const state = require('../state');
 		const { pixels, config, boardIntervals, ws281x, pollData, timerData } = state;
 		const newPollData = classroomData.poll
-		let pixelsPerStudent
 		let text = ''
 		let pollText = 'Poll'
 		let pollResponses = 0
@@ -25,7 +42,8 @@ function handleClassUpdate(webIo) {
 
 		if (util.isDeepStrictEqual(newPollData, pollData)) return
 
-		logger.debug('Class update received', { pollStatus: newPollData.status, pollPrompt: newPollData.prompt });
+		const responseCount = newPollData.responses ? Object.keys(newPollData.responses).length : 0;
+		logger.debug(`Formbar classUpdate: status=${newPollData.status}, prompt="${newPollData.prompt || ''}", responses=${newPollData.totalResponses}/${newPollData.totalResponders}, options=${responseCount}, timerActive=${timerData.active}`);
 
 		// Only clear the bar when poll is cleared (no responses), not when it's just ended
 		if (!newPollData.status && (!newPollData.responses || Object.keys(newPollData.responses).length === 0)) {
@@ -43,6 +61,10 @@ function handleClassUpdate(webIo) {
 
 		// Continue processing if poll has responses (whether active or ended)
 		if (newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0)) {
+			/**
+			 * Normalize poll responses to array format.
+			 * @returns {Array<{answer?: string, responses: number, color?: string|number}>} Poll responses array.
+			 */
 			const getResponsesArray = () => {
 				if (Array.isArray(newPollData.responses)) {
 					return newPollData.responses
@@ -58,33 +80,15 @@ function handleClassUpdate(webIo) {
 			}
 
 			if (newPollData.totalResponses === 4 && newPollData.totalResponders === 20) {
-				const simPlayer = {
-					play: async (file) => {
-						let sockets = await webIo.fetchSockets()
-						for (let s of sockets) s.emit('play', file)
-					}
-				}
-				simPlayer.play('./sfx/memeSFX/snoop.wav')
+				emitSoundToWebClients(webIo, './sfx/memeSFX/snoop.wav')
 			}
 
 			if (newPollData.totalResponses === 6 && newPollData.totalResponders === 9) {
-				const simPlayer = {
-					play: async (file) => {
-						let sockets = await webIo.fetchSockets()
-						for (let s of sockets) s.emit('play', file)
-					}
-				}
-				simPlayer.play('./sfx/memeSFX/noice.wav')
+				emitSoundToWebClients(webIo, './sfx/memeSFX/noice.wav')
 			}
 
 			if (newPollData.totalResponses === 6 && newPollData.totalResponders === 7) {
-				const simPlayer = {
-					play: async (file) => {
-						let sockets = await webIo.fetchSockets()
-						for (let s of sockets) s.emit('play', file)
-					}
-				}
-				simPlayer.play('./sfx/memeSFX/brainrot.wav')
+				emitSoundToWebClients(webIo, './sfx/memeSFX/brainrot.wav')
 			}
 
 			if (!timerData.active) {
@@ -100,6 +104,11 @@ function handleClassUpdate(webIo) {
 					if (newPollData.prompt == 'Thumbs?') {
 						fill(pixels, 0x000000, config.barPixels)
 
+						/**
+						 * Find a response object by answer text.
+						 * @param {string} answerText - Answer label to match.
+						 * @returns {{answer?: string, responses: number, color?: string|number}|undefined} Matching response.
+						 */
 						const findResponse = (answerText) => {
 							return responsesArray.find(r => r.answer === answerText)
 						}
@@ -112,13 +121,7 @@ function handleClassUpdate(webIo) {
 							if (!display) return
 							boardIntervals.push(display)
 
-							const simPlayer = {
-								play: async (file) => {
-									let sockets = await webIo.fetchSockets()
-									for (let s of sockets) s.emit('play', file)
-								}
-							}
-							simPlayer.play('./sfx/formbarSFX/sfx_success01.wav')
+							emitSoundToWebClients(webIo, './sfx/formbarSFX/sfx_success01.wav')
 
 							specialDisplay = true
 							return
@@ -126,13 +129,7 @@ function handleClassUpdate(webIo) {
 
 						const wiggleResponse = findResponse('Wiggle')
 						if (wiggleResponse && wiggleResponse.responses == newPollData.totalResponders) {
-							const simPlayer = {
-								play: async (file) => {
-									let sockets = await webIo.fetchSockets()
-									for (let s of sockets) s.emit('play', file)
-								}
-							}
-							simPlayer.play('./sfx/memeSFX/bruh.wav')
+							emitSoundToWebClients(webIo, './sfx/memeSFX/bruh.wav')
 
 							let text = [
 								'Wiggle Nation: Where democracy meets indecision!',
@@ -150,13 +147,7 @@ function handleClassUpdate(webIo) {
 
 						const downResponse = findResponse('Down')
 						if (downResponse && downResponse.responses == newPollData.totalResponders) {
-							const simPlayer = {
-								play: async (file) => {
-									let sockets = await webIo.fetchSockets()
-									for (let s of sockets) s.emit('play', file)
-								}
-							}
-							simPlayer.play('./sfx/memeSFX/wompwomp.wav')
+							emitSoundToWebClients(webIo, './sfx/memeSFX/wompwomp.wav')
 							let text = [
 								'Git Gud',
 								'Skill Issue',
@@ -171,59 +162,45 @@ function handleClassUpdate(webIo) {
 					}
 				}
 
-				let nonEmptyPolls = -1
-				for (let poll of Object.values(newPollData.responses)) {
-					if (poll.responses > 0) {
-						nonEmptyPolls++
-					}
-				}
-
+				const polls = Object.values(newPollData.responses)
 				let totalResponses = 0
-				for (let poll of Object.values(newPollData.responses)) {
+				for (let poll of polls) {
 					totalResponses += poll.responses
 				}
 
-				if (newPollData.multiRes) {
-					if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
-					else pixelsPerStudent = Math.ceil((config.barPixels - nonEmptyPolls) / totalResponses / newPollData.totalResponders)
-				} else {
-					if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
-					else pixelsPerStudent = Math.ceil((config.barPixels - nonEmptyPolls) / newPollData.totalResponders)
-				}
-
 				let currentPixel = 0
-				let pollNumber = 0
-				for (let poll of Object.values(newPollData.responses)) {
-					for (let responseNumber = 0; responseNumber < poll.responses; responseNumber++) {
-						let color = poll.color
+				if (totalResponses > 0) {
+					const separatorCount = blind ? 0 : Math.max(totalResponses - 1, 0)
+					const fillablePixels = Math.max(0, config.barPixels - separatorCount)
+					const basePixelsPerResponse = Math.floor(fillablePixels / totalResponses)
+					let remainderPixels = fillablePixels % totalResponses
+					let responseIndex = 0
 
-						if (blind) color = 0xFF8000
+					for (let poll of polls) {
+						for (let responseNumber = 0; responseNumber < poll.responses; responseNumber++) {
+							let color = blind ? 0xFF8000 : poll.color
+							let pixelsToFill = basePixelsPerResponse
 
-						let pixelsToFill = Math.min(pixelsPerStudent, config.barPixels - currentPixel)
-
-						if (pixelsToFill <= 0) break
-
-						fill(pixels, color, currentPixel, pixelsToFill)
-
-						currentPixel += pixelsToFill
-
-						if (
-							responseNumber < poll.responses - 1 ||
-							pollNumber < nonEmptyPolls
-						) {
-							if (currentPixel < config.barPixels) {
-								pixels[currentPixel] = 0xFF0080
+							if (remainderPixels > 0) {
+								pixelsToFill++
+								remainderPixels--
 							}
+
+							pixelsToFill = Math.min(pixelsToFill, config.barPixels - currentPixel)
+							if (pixelsToFill > 0) {
+								fill(pixels, color, currentPixel, pixelsToFill)
+								currentPixel += pixelsToFill
+							}
+
+							const isLastResponse = responseIndex === totalResponses - 1
+							if (!blind && !isLastResponse && currentPixel < config.barPixels) {
+								pixels[currentPixel] = 0xFF0080
+								currentPixel++
+							}
+
+							responseIndex++
 						}
 					}
-
-					if (
-						!blind &&
-						poll.responses > 0
-					) {
-						if (currentPixel < config.barPixels) currentPixel++
-					}
-					pollNumber++
 				}
 			}
 

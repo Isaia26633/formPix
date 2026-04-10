@@ -9,6 +9,11 @@ const PIXELS_PER_LETTER = 5;
 const BOARD_HEIGHT = 8;
 const boardPixelCache = new Map();
 
+/**
+ * Build (or fetch from cache) pixel columns for a rendered string.
+ * @param {string} string - Text to convert into board pixel columns.
+ * @returns {number[][]} Pixel columns where each column has 8 rows.
+ */
 function getBoardPixelsForString(string) {
 	let cached = boardPixelCache.get(string);
 	if (cached) return cached;
@@ -37,13 +42,14 @@ function getBoardPixelsForString(string) {
 
 /**
  * Shows a string on the board
- * @param {Array} boardPixels - The board pixels
+ * @param {number[][]} boardPixels - The board pixel columns.
  * @param {number} startFrame - Starting frame
  * @param {number} textColor - Text color in hex
  * @param {number} backgroundColor - Background color in hex
+ * @param {Uint32Array} pixels - The pixels array
  * @param {number} startPixel - Starting pixel index
  * @param {number} endPixel - Ending pixel index
- * @param {Uint32Array} pixels - The pixels array
+ * @returns {void}
  */
 function showString(boardPixels, startFrame, textColor, backgroundColor, pixels, startPixel, endPixel) {
 	let currentPixel = startPixel;
@@ -82,12 +88,13 @@ function getStringColumnLength(text) {
  * @param {string} string - The string to display.
  * @param {number} textColor - The color of the text.
  * @param {number} backgroundColor - The color of the background.
- * @param {Object} config - Configuration object
- * @param {Array} boardIntervals - Array of active board intervals
+ * @param {{barPixels: number, boards: number}} config - Configuration object.
+ * @param {Array<Object>} boardIntervals - Array of active board intervals.
  * @param {Object} ws281x - WebSocket renderer object
  * @param {number} [startColumn=0] - The starting column to display the string.
  * @param {number} [endColumn] - The ending column to display the string.
  * @param {number} [scroll=100] - The speed of scrolling in milliseconds.
+ * @returns {{string: string, interval?: ReturnType<typeof setInterval>, startColumn: number, endColumn: number, startPixel: number, endPixel: number, textColor: number, backgroundColor: number, scroll: number}|undefined}
  */
 function displayBoard(pixels, string, textColor, backgroundColor, config, boardIntervals, ws281x, startColumn = 0, endColumn = null, scroll = 100) {
 	if (endColumn === null) {

@@ -37,6 +37,9 @@ const {
 const { getRandomBootupSound, playSound } = require('./utils/soundUtils');
 const { handleClassUpdate } = require('./sockets/pollHandlers');
 const { handleVBTimer } = require('./sockets/timerHandlers');
+const path = require('path');
+const fs = require('fs');
+const sqlite3 = require('sqlite3').verbose();
 
 // ============================================================================
 // EXPRESS SETUP
@@ -56,33 +59,69 @@ app.use('/sfx', express.static(__dirname + '/sfx'));
 app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
 
-// Store webIo in state for event handlers
-state.webIo = webIo;
-state.ws281x.render = async () => {
+/**
+ * Render the current pixel buffer to all connected browser clients.
+ * @returns {Promise<void>} Resolves when all socket emits are queued.
+ */
+async function renderToWebClients() {
 	let sockets = await webIo.fetchSockets();
 	for (let socket of sockets) {
 		socket.emit('render', new Array(...state.pixels));
 	}
-};
+}
 
-// API Routes
-app.use(checkConnection);
-app.use(checkPermissions);
-app.use(validateQueryParams);
-app.use('/api', pixelRoutes);
-app.use('/api', displayRoutes);
-app.use('/api', soundRoutes(webIo));
-app.use('/api', infoRoutes);
-
-// Main page
-app.get('/', (request, response) => {
+/**
+ * Render the simulator index page.
+ * @param {import('express').Request} request - Express request object.
+ * @param {import('express').Response} response - Express response object.
+ * @returns {void}
+ */
+function renderIndexPage(request, response) {
 	response.render('index', {
 		config: state.config,
 		BOARD_WIDTH: state.BOARD_WIDTH,
 		BOARD_HEIGHT: state.BOARD_HEIGHT,
 		pixels: state.pixels
 	});
-});
+}
+
+/**
+ * Handle browser websocket client connections.
+ * @param {{id?: string}} socket - Connected browser socket.
+ * @returns {void}
+ */
+function handleBrowserConnection(socket) {
+	console.log('Browser client connected');
+	if (!bootupPlayed) {
+		bootupPlayed = true;
+		const bootupSound = getRandomBootupSound();
+		playSound({ formbar: bootupSound.split('/').pop() });
+	}
+}
+
+/**
+ * Log server startup information.
+ * @returns {Promise<void>} Resolves once startup logging is complete.
+ */
+async function onServerStarted() {
+	console.log(`Server running on port: ${state.config.port}`);
+}
+
+// Store webIo in state for event handlers
+state.webIo = webIo;
+state.ws281x.render = renderToWebClients;
+
+// Main page
+app.get('/', renderIndexPage);
+
+// API Routes
+app.use('/api', checkConnection);
+app.use('/api', checkPermissions);
+app.use('/api', validateQueryParams);
+app.use('/api', pixelRoutes);
+app.use('/api', displayRoutes);
+app.use('/api', soundRoutes(webIo));
+app.use('/api', infoRoutes);
 
 // Error handling
 app.use(handle404);
@@ -92,14 +131,7 @@ app.use(handle404);
 // ============================================================================
 
 let bootupPlayed = false;
-webIo.on('connection', (socket) => {
-	console.log('Browser client connected');
-	if (!bootupPlayed) {
-		bootupPlayed = true;
-		const bootupSound = getRandomBootupSound();
-		playSound({ formbar: bootupSound.split('/').pop() });
-	}
-});
+webIo.on('connection', handleBrowserConnection);
 
 // ============================================================================
 // FORMBAR SOCKET.IO SETUP
@@ -129,9 +161,48 @@ socket.on('classUpdate', handleClassUpdate(webIo));
 socket.on('vbTimer', handleVBTimer());
 
 // ============================================================================
+// SQL SETUP
+// ============================================================================
+const dbDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dbDir)) {
+	fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const dbPath = state.config.sqlitePath
+	? path.resolve(state.config.sqlitePath)
+	: path.join(dbDir, 'formpix.db');
+
+state.db = new sqlite3.Database(dbPath, (err) => {
+	if (err) {
+		console.error('SQLite connection failed:', err.message);
+		return;
+	}
+	console.log(`SQLite connected: ${dbPath}`);
+});
+
+state.db.serialize(() => {
+	state.db.run(`
+		CREATE TABLE IF NOT EXISTS submissions (
+			entry INTEGER PRIMARY KEY AUTOINCREMENT,
+			id NOT NULL,
+			email TEXT NOT NULL,
+			text TEXT NOT NULL
+		)
+	`);
+});
+
+const closeDb = () => {
+	if (state.db) {
+		state.db.close((err) => {
+			if (err) console.error('SQLite close failed:', err.message);
+		});
+	}
+};
+
+process.on('beforeExit', closeDb);
+
+// ============================================================================
 // SERVER START
 // ============================================================================
 
-httpServer.listen(state.config.port, async () => {
-	console.log(`Server running on port: ${state.config.port}`);
-});
+httpServer.listen(state.config.port, onServerStarted);
