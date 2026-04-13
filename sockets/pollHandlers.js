@@ -211,7 +211,7 @@ function handleClassUpdate() {
 		ws281x.render()
 	}
 }
-}
+
 
 module.exports = {
 	handleClassUpdate
