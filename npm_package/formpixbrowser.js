@@ -7,49 +7,67 @@
 	var FORM_PIX_URL = 'http://localhost:3000';
 	var API_KEY = null;
 
+	function getPostOptions() {
+		return {
+			method: 'POST',
+			headers: {
+				'API': API_KEY,
+				'Content-Type': 'application/json'
+			}
+		};
+	}
+
+	function getGetOptions() {
+		return {
+			method: 'GET',
+			headers: {
+				'API': API_KEY,
+				'Content-Type': 'application/json'
+			}
+		};
+	}
+
 	function login(url, key) {
 		FORM_PIX_URL = url;
 		API_KEY = key;
 	}
 
-	let reqOptions =
-	{
-		method: 'POST',
-		headers: {
-			'API': API_KEY,
-			'Content-Type': 'application/json'
-		}
-	};
-
-	function sendCommand(command, params, reqOptions) {
-		fetch(`${FORM_PIX_URL}/api/${command}?${params}`, reqOptions)
+	function sendCommand(command, params, options) {
+		return fetch(`${FORM_PIX_URL}/api/${command}?${params}`, options)
 			.then((response) => {
-				// Convert received data to JSON
 				return response.json();
 			})
 			.then((data) => {
-				// Log the data if the request is successful
-				console.log(data);
+				return data;
 			})
 			.catch((err) => {
-				// If there's a problem, handle it...
 				if (err) console.log('connection closed due to errors:', err);
 			});
 	}
 
 	function fill(color, start, length) {
-
 		let params = new URLSearchParams({
 			color: color,
 			start: start,
 			length: length
 		}).toString();
 
-		sendCommand('fill', params, reqOptions);
+		return sendCommand('fill', params, getPostOptions());
+	}
+
+	function fillByPercent(percent, fillColor, bgColor, length) {
+		let paramObj = {
+			percent: percent,
+			fillColor: fillColor,
+			bgColor: bgColor
+		};
+		if (length !== undefined) paramObj.length = length;
+
+		let params = new URLSearchParams(paramObj).toString();
+		return sendCommand('fillByPercent', params, getPostOptions());
 	}
 
 	function gradient(startColor, endColor, start, length) {
-
 		let params = new URLSearchParams({
 			startColor: startColor,
 			endColor: endColor,
@@ -57,85 +75,111 @@
 			length: length
 		}).toString();
 
-		sendCommand('gradient', params, reqOptions);
+		return sendCommand('gradient', params, getPostOptions());
 	}
 
-	function setPixel(location, color) {
+	function setPixel(pixel, color) {
 		let params = new URLSearchParams({
-			location: location,
+			pixel: pixel,
 			color: color
 		}).toString();
 
-		sendCommand('setPixel', params, reqOptions);
+		return sendCommand('setPixel', params, getPostOptions());
 	}
 
 	function setPixels(pixels) {
 		let params = new URLSearchParams({
-			pixels: pixels
+			pixels: JSON.stringify(pixels)
 		}).toString();
 
-		sendCommand('setPixels', params, reqOptions);
+		return sendCommand('setPixels', params, getPostOptions());
 	}
 
-	function say(text, color, bgcolor) {
+	function progress(options) {
+		let paramObj = {};
+		if (options.bg1 !== undefined) paramObj.bg1 = options.bg1;
+		if (options.bg2 !== undefined) paramObj.bg2 = options.bg2;
+		if (options.fg1 !== undefined) paramObj.fg1 = options.fg1;
+		if (options.fg2 !== undefined) paramObj.fg2 = options.fg2;
+		if (options.start !== undefined) paramObj.start = options.start;
+		if (options.length !== undefined) paramObj.length = options.length;
+		if (options.startingFill !== undefined) paramObj.startingFill = options.startingFill;
+		if (options.duration !== undefined) paramObj.duration = options.duration;
+		if (options.easing !== undefined) paramObj.easing = options.easing;
+		if (options.interval !== undefined) paramObj.interval = options.interval;
 
-		let params = new URLSearchParams({
+		let params = new URLSearchParams(paramObj).toString();
+		return sendCommand('progress', params, getPostOptions());
+	}
+
+	function rave(options) {
+		if (!options) options = {};
+		let paramObj = {};
+		if (options.speed !== undefined) paramObj.speed = options.speed;
+		if (options.mode !== undefined) paramObj.mode = options.mode;
+		if (options.intensity !== undefined) paramObj.intensity = options.intensity;
+		if (options.bpm !== undefined) paramObj.bpm = options.bpm;
+
+		let params = new URLSearchParams(paramObj).toString();
+		return sendCommand('rave', params, getPostOptions());
+	}
+
+	function raveStop() {
+		return sendCommand('rave/stop', '', getPostOptions());
+	}
+
+	function say(text, color, bgcolor, scroll) {
+		let paramObj = {
 			text: text,
 			textColor: color,
 			backgroundColor: bgcolor
-		}).toString();
+		};
+		if (scroll !== undefined) paramObj.scroll = scroll;
 
-		sendCommand('say', params, reqOptions);
+		let params = new URLSearchParams(paramObj).toString();
+		return sendCommand('say', params, getPostOptions());
+	}
+
+	function getDisplay() {
+		return sendCommand('getDisplay', '', getGetOptions());
 	}
 
 	function getSounds(type) {
-		let getOptions =
-		{
-			method: 'GET',
-			headers: {
-				'API': API_KEY,
-				'Content-Type': 'application/json'
-			}
-		};
+		let paramObj = {};
+		if (type !== undefined) paramObj.type = type;
 
-		let params = new URLSearchParams({
-			type: type
-		}).toString();
-
-		sendCommand('say', params, getOptions);
-
+		let params = new URLSearchParams(paramObj).toString();
+		return sendCommand('getSounds', params, getGetOptions());
 	}
 
-	function playSound(sfx, bgm) {
-		let params = new URLSearchParams({
-			sfx: sfx,
-			bgm: bgm
-		}).toString();
+	function playSound(formbar, meme) {
+		let paramObj = {};
+		if (formbar !== undefined) paramObj.formbar = formbar;
+		if (meme !== undefined) paramObj.meme = meme;
 
-		sendCommand('playSound', params, reqOptions);
+		let params = new URLSearchParams(paramObj).toString();
+		return sendCommand('playSound', params, getPostOptions());
 	}
 
 	var formpixapi = {
-		login, fill, gradient, setPixel, setPixels, say, getSounds, playSound
+		login, fill, fillByPercent, gradient, setPixel, setPixels,
+		progress, rave, raveStop, say, getDisplay, getSounds, playSound
 	};
-	var formpixapi_1 = formpixapi.login;
-	var formpixapi_2 = formpixapi.fill;
-	var formpixapi_3 = formpixapi.gradient;
-	var formpixapi_4 = formpixapi.setPixel;
-	var formpixapi_5 = formpixapi.setPixels;
-	var formpixapi_6 = formpixapi.say;
-	var formpixapi_7 = formpixapi.getSounds;
-	var formpixapi_8 = formpixapi.playSound;
 
 	exports.default = formpixapi;
-	exports.fill = formpixapi_2;
-	exports.getSounds = formpixapi_7;
-	exports.gradient = formpixapi_3;
-	exports.login = formpixapi_1;
-	exports.playSound = formpixapi_8;
-	exports.say = formpixapi_6;
-	exports.setPixel = formpixapi_4;
-	exports.setPixels = formpixapi_5;
+	exports.login = formpixapi.login;
+	exports.fill = formpixapi.fill;
+	exports.fillByPercent = formpixapi.fillByPercent;
+	exports.gradient = formpixapi.gradient;
+	exports.setPixel = formpixapi.setPixel;
+	exports.setPixels = formpixapi.setPixels;
+	exports.progress = formpixapi.progress;
+	exports.rave = formpixapi.rave;
+	exports.raveStop = formpixapi.raveStop;
+	exports.say = formpixapi.say;
+	exports.getDisplay = formpixapi.getDisplay;
+	exports.getSounds = formpixapi.getSounds;
+	exports.playSound = formpixapi.playSound;
 
 	Object.defineProperty(exports, '__esModule', { value: true });
 

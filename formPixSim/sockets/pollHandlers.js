@@ -162,66 +162,72 @@ function handleClassUpdate(webIo) {
 					}
 				}
 
-				const polls = Object.values(newPollData.responses)
+				let nonEmptyPolls = -1
+				for (let poll of Object.values(newPollData.responses)) {
+					if (poll.responses > 0) {
+						nonEmptyPolls++
+					}
+				}
+
 				let totalResponses = 0
-				for (let poll of polls) {
+				for (let poll of Object.values(newPollData.responses)) {
 					totalResponses += poll.responses
 				}
 
+				if (newPollData.multiRes) {
+					if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
+					else pixelsPerStudent = Math.ceil((config.barPixels - nonEmptyPolls) / totalResponses / newPollData.totalResponders)
+				} else {
+					if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
+					else pixelsPerStudent = Math.ceil((config.barPixels - nonEmptyPolls) / newPollData.totalResponders)
+				}
+
 				let currentPixel = 0
-				if (totalResponses > 0) {
-					const separatorCount = blind ? 0 : Math.max(totalResponses - 1, 0)
-					const fillablePixels = Math.max(0, config.barPixels - separatorCount)
-					const basePixelsPerResponse = Math.floor(fillablePixels / totalResponses)
-					let remainderPixels = fillablePixels % totalResponses
-					let responseIndex = 0
+				let pollNumber = 0
+				for (let poll of Object.values(newPollData.responses)) {
+					for (let responseNumber = 0; responseNumber < poll.responses; responseNumber++) {
+						let color = poll.color
 
-					for (let poll of polls) {
-						for (let responseNumber = 0; responseNumber < poll.responses; responseNumber++) {
-							let color = blind ? 0xFF8000 : poll.color
-							let pixelsToFill = basePixelsPerResponse
+						if (blind) color = 0xFF8000
 
-							if (remainderPixels > 0) {
-								pixelsToFill++
-								remainderPixels--
-							}
+						let pixelsToFill = Math.min(pixelsPerStudent, config.barPixels - currentPixel)
 
-							pixelsToFill = Math.min(pixelsToFill, config.barPixels - currentPixel)
-							if (pixelsToFill > 0) {
-								fill(pixels, color, currentPixel, pixelsToFill)
-								currentPixel += pixelsToFill
-							}
+						if (pixelsToFill <= 0) break
 
-							const isLastResponse = responseIndex === totalResponses - 1
-							if (!blind && !isLastResponse && currentPixel < config.barPixels) {
+						fill(pixels, color, currentPixel, pixelsToFill)
+
+						currentPixel += pixelsToFill
+
+						const isLastResponse = responseNumber === poll.responses - 1 && pollNumber >= nonEmptyPolls
+						if (!blind && !isLastResponse) {
+							if (currentPixel < config.barPixels) {
 								pixels[currentPixel] = 0xFF0080
 								currentPixel++
 							}
-
-							responseIndex++
 						}
 					}
+					pollNumber++
 				}
+
+				if (!specialDisplay) {
+					text = `${newPollData.totalResponses}/${newPollData.totalResponders} `
+					if (newPollData.prompt) pollText = newPollData.prompt
+
+					const boardStartPixel = config.barPixels
+					const boardLength = config.boards * 32 * 8
+					fill(pixels, 0x000000, boardStartPixel, boardLength)
+
+					let display = displayBoard(pixels, text, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
+					if (display) boardIntervals.push(display)
+
+					display = displayBoard(pixels, pollText, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x, getStringColumnLength(text))
+					if (display) boardIntervals.push(display)
+				}
+
+				state.pollData = newPollData
+
+				ws281x.render()
 			}
-
-			if (!specialDisplay) {
-				text = `${newPollData.totalResponses}/${newPollData.totalResponders} `
-				if (newPollData.prompt) pollText = newPollData.prompt
-
-				const boardStartPixel = config.barPixels
-				const boardLength = config.boards * 32 * 8
-				fill(pixels, 0x000000, boardStartPixel, boardLength)
-
-				let display = displayBoard(pixels, text, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
-				if (display) boardIntervals.push(display)
-
-				display = displayBoard(pixels, pollText, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x, getStringColumnLength(text))
-				if (display) boardIntervals.push(display)
-			}
-
-			state.pollData = newPollData
-
-			ws281x.render()
 		}
 	}
 }
