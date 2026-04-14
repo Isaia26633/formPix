@@ -98,9 +98,10 @@ function handleSetClass(socket, boardIntervals) {
 
 			ws281x.render()
 		} else {
-			logger.info(`Formbar setClass: ${userClassId}`);
+			logger.debug(`Formbar setClass: ${userClassId}`);
 			socket.emit('classUpdate')
 			socket.emit('vbTimer')
+			handleRequestClassUpdate(socket)();
 		}
 
 		state.classId = userClassId;
