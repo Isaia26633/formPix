@@ -15,8 +15,19 @@ function getRequestorIdentity(data) {
 }
 
 // List of thing people say to stop bad things ig
-let stuffSaid = []
+const MAX_RECENT_MESSAGES = 5;
 
+class FixedSizeArray extends Array {
+	push(...items) {
+		const result = super.push(...items);
+		if (this.length > MAX_RECENT_MESSAGES) {
+			this.splice(0, this.length - MAX_RECENT_MESSAGES);
+		}
+		return result;
+	}
+}
+
+const stuffSaid = new FixedSizeArray();
 /**
  * POST /api/say - Display text on the LED board
  * @param {import('express').Request} req - Express request object.
