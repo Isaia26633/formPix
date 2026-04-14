@@ -22,8 +22,8 @@ const logger = require('../utils/logger');
  */
 function handleConnectError(socket, boardIntervals) {
 	return (error) => {
-		if (error.message == 'xhr poll error') console.log('no connection');
-		else console.log(error.message);
+		if (error.message == 'xhr poll error') logger.debug('No connection - retrying');
+		else logger.warn(`Socket connection error: ${error.message}`);
 
 		state.connected = false
 
@@ -97,15 +97,9 @@ function handleSetClass(socket, boardIntervals) {
 
 			ws281x.render()
 		} else {
+			logger.debug(`Class update received - New class ID: ${userClassId}`);
 			socket.emit('classUpdate')
 			socket.emit('vbTimer')
-			if (!state.classRefreshed) {
-				state.classRefreshed = true;
-
-				logger.info(`Class update received - New class ID: ${userClassId}`);
-				
-				handleRequestClassUpdate(socket)();
-			}
 		}
 
 		state.classId = userClassId;
