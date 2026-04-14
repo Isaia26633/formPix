@@ -14,26 +14,8 @@ function getRequestorIdentity(data) {
 	};
 }
 
-function insertSubmission(db, id, email, text) {
-	return new Promise((resolve, reject) => {
-		if (!db) {
-			reject(new Error('Database connection is not available'));
-			return;
-		}
-
-		db.run(
-			'INSERT INTO submissions (id, email, text) VALUES (?, ?, ?)',
-			[String(id ?? 'unknown'), String(email ?? 'unknown'), String(text ?? '')],
-			function onInsert(err) {
-				if (err) {
-					reject(err);
-					return;
-				}
-				resolve(this.lastID);
-			}
-		);
-	});
-}
+// List of thing people say to stop bad things ig
+let stuffSaid = []
 
 /**
  * POST /api/say - Display text on the LED board
@@ -74,6 +56,11 @@ async function sayController(req, res) {
 				if (response.ok) {
 					const data = await response.json();
 					speaker = getRequestorIdentity(data);
+					stuffSaid.push({
+						speaker: speaker,
+						timestamp: new Date().toISOString(),
+						message: text
+					})
 				} else {
 					logger.warn('Unable to resolve speaker identity', { status: response.status });
 				}
@@ -117,7 +104,6 @@ async function sayController(req, res) {
 
 		// Store the current display message
 		state.currentDisplayMessage = text; state.lastDisplayUpdate = new Date().toISOString();
-		await insertSubmission(state.db, speaker.id, speaker.email, text);
 		res.status(200).json({ message: 'ok' })
 	} catch (err) {
 		console.error('Error in sayController:', err);
@@ -149,7 +135,8 @@ async function getDisplayController(req, res) {
 			isActive: !!state.currentDisplayMessage,
 			timestamp: state.lastDisplayUpdate || null,
 			brightness: state.config.brightness || 100,
-			isScrolling: state.config.scroll && state.currentDisplayMessage && state.currentDisplayMessage.length > (state.config.width / 6) // approximate char width
+			isScrolling: state.config.scroll && state.currentDisplayMessage && state.currentDisplayMessage.length > (state.config.width / 6), // approximate char width
+			recentMessages: stuffSaid.slice(-5)
 		};
 
 		res.status(200).json({

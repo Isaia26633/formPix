@@ -4,4 +4,3 @@ settings.json
 logs/
 *.env
 config.py
-*.db
