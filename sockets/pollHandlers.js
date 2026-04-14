@@ -154,12 +154,16 @@ function handleClassUpdate() {
 					totalResponses += poll.responses
 				}
 
+				// Reserve pixels for dividers (one between each response except the last)
+				const dividerCount = totalResponses > 0 ? totalResponses - 1 : 0
+				const availablePixelsForResponses = config.barPixels - dividerCount
+
 				if (newPollData.multiRes) {
 					if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
-					else pixelsPerStudent = Math.ceil((config.barPixels - nonEmptyPolls) / totalResponses / newPollData.totalResponders)
+					else pixelsPerStudent = Math.floor(availablePixelsForResponses / totalResponses / newPollData.totalResponders)
 				} else {
 					if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
-					else pixelsPerStudent = Math.ceil((config.barPixels - nonEmptyPolls) / newPollData.totalResponders)
+					else pixelsPerStudent = Math.floor(availablePixelsForResponses / totalResponses)
 				}
 
 				let currentPixel = 0
