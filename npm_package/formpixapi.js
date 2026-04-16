@@ -6,6 +6,7 @@ function getPostOptions() {
 		method: 'POST',
 		headers: {
 			'API': API_KEY,
+			'X-FormPix-Source': 'formbar',
 			'Content-Type': 'application/json'
 		}
 	};
@@ -16,6 +17,7 @@ function getGetOptions() {
 		method: 'GET',
 		headers: {
 			'API': API_KEY,
+			'X-FormPix-Source': 'formbar',
 			'Content-Type': 'application/json'
 		}
 	};
