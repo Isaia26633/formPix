@@ -107,6 +107,7 @@ let state = {
 	socket,
 	classId: null,
 	pollData: {},
+	pollLockActive: false,
 	boardIntervals: [],
 	currentDisplayMessage: null,
 	timerData: {
