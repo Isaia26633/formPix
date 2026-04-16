@@ -194,10 +194,10 @@ class IRRemote {
             }
         } else if (buttonName === 'play_pause') {
             try {
-                this.socket.emit('updatePoll', {});
-                console.log('[IR Remote] Updated poll');
+                this.socket.emit('startPoll');
+                console.log('[IR Remote] Started poll');
             } catch (err) {
-                console.error('[IR Remote] Failed to emit "updatePoll":', err);
+                console.error('[IR Remote] Failed to emit "startPoll":', err);
             }
         }
     }

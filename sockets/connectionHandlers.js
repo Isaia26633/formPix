@@ -22,8 +22,8 @@ const logger = require('../utils/logger');
  */
 function handleConnectError(socket, boardIntervals) {
 	return (error) => {
-		if (error.message == 'xhr poll error') console.log('no connection');
-		else console.log(error.message);
+		if (error.message == 'xhr poll error') logger.warn('Formbar connection lost - retrying in 5s');
+		else logger.error(`Formbar connect error: ${error.message}`);
 
 		state.connected = false
 
@@ -43,7 +43,7 @@ function handleConnectError(socket, boardIntervals) {
 }
 
 /**
- * Handle connect
+ * Connect to a class and the display.
  * @param {ClientSocket} socket User socket instance
  * @param {BoardInterval[]} boardIntervals Display interval records for the board
  * @returns {() => void} Connect event callback
@@ -52,15 +52,17 @@ function handleConnect(socket, boardIntervals) {
 	return () => {
 
 		state.connected = true
+		logger.info('Connected to formbar - requesting active class');
 
 		socket.emit('getActiveClass', state.config.api);
 
 		const { pixels, config, ws281x } = state;
 		let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x, 0, null, 100)
 		if (!display) return
-		boardIntervals.push(display)	
-	// Set timestamp for default message display
-	state.lastDisplayUpdate = new Date().toISOString();	}
+		boardIntervals.push(display)
+		// Set timestamp for default message display
+		state.lastDisplayUpdate = new Date().toISOString();
+	}
 }
 
 /**
@@ -74,9 +76,10 @@ function handleRequestClassUpdate(socket) {
 	}
 }
 
+let lastClassId; // Move lastClassId outside the function
 
 /**
- * Handle set class
+ * Get class info and send update message
  * @param {ClientSocket} socket User socket instance
  * @param {BoardInterval[]} boardIntervals Display interval records for the board
  * @returns {(userClassId: string | null | undefined) => void} Set class callback
@@ -88,8 +91,9 @@ function handleSetClass(socket, boardIntervals) {
 		if (userClassId == null) {
 			const { pixels, config, ws281x } = state;
 			fill(pixels, 0x000000, 0, config.barPixels)
+			lastClassId = null
 
-			logger.info('No active class - cleared display');
+			logger.info('Formbar setClass: null - no active class, cleared display');
 
 			let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x, 0, null, 100)
 			if (!display) return
@@ -97,15 +101,13 @@ function handleSetClass(socket, boardIntervals) {
 
 			ws281x.render()
 		} else {
+			if (userClassId !== lastClassId) {
+				logger.info(`Formbar setClass: ${userClassId}`);
+				lastClassId = userClassId;
+			}
 			socket.emit('classUpdate')
 			socket.emit('vbTimer')
-			if (!state.classRefreshed) {
-				state.classRefreshed = true;
-
-				logger.info(`Class update received - New class ID: ${userClassId}`);
-				
-				handleRequestClassUpdate(socket)();
-			}
+			handleRequestClassUpdate(socket)();
 		}
 
 		state.classId = userClassId;
