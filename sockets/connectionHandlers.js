@@ -22,7 +22,8 @@ const logger = require('../utils/logger');
  */
 function handleConnectError(socket, boardIntervals) {
 	return (error) => {
-		if (error.message == 'xhr poll error') logger.warn('Formbar connection lost - retrying in 5s');
+		const isTransientPollTransportError = error.message == 'xhr poll error';
+		if (isTransientPollTransportError) logger.warn('Formbar connection lost - retrying in 5s');
 		else logger.error(`Formbar connect error: ${error.message}`);
 
 		state.connected = false
@@ -32,9 +33,11 @@ function handleConnectError(socket, boardIntervals) {
 			return false
 		})
 
-		const { pixels, config, ws281x } = state;
-		fill(pixels, 0x000000)
-		ws281x.render()
+		if (!isTransientPollTransportError) {
+			const { pixels, config, ws281x } = state;
+			fill(pixels, 0x000000)
+			ws281x.render()
+		}
 
 		setTimeout(() => {
 			socket.connect()
