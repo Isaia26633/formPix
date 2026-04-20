@@ -6,18 +6,30 @@ const logger = require('../utils/logger');
 const util = require('util');
 const { fill, gradient } = require('../utils/pixelOps');
 const { displayBoard, getStringColumnLength } = require('../utils/displayUtils');
-const { playSound, player } = require('../utils/soundUtils');
 const PIXELS_PER_LETTER = 5;
 
 /**
+ * @typedef {{fetchSockets: () => Promise<Array<{emit: (event: string, payload?: unknown) => void}>>}} WebIo
  * @typedef {{ poll: Record<string, unknown> }} ClassroomData
  */
 
 /**
+ * Emit a sound file to all connected browser clients.
+ * @param {WebIo} webIo - Socket.io server instance.
+ * @param {string} file - Relative sound file path.
+ * @returns {Promise<void>} Resolves after all emits complete.
+ */
+async function emitSoundToWebClients(webIo, file) {
+	let sockets = await webIo.fetchSockets()
+	for (let socket of sockets) socket.emit('play', file)
+}
+
+/**
  * Handle class update with poll data
+ * @param {WebIo} webIo socket.io server instance
  * @returns {(classroomData: ClassroomData) => void} Class update callback
  */
-function handleClassUpdate() {
+function handleClassUpdate(webIo) {
 	return (classroomData) => {
 		const state = require('../state');
 		const { pixels, config, boardIntervals, ws281x, pollData, timerData } = state;
@@ -30,7 +42,8 @@ function handleClassUpdate() {
 
 		if (util.isDeepStrictEqual(newPollData, pollData)) return
 
-		logger.debug('Class update received', { pollStatus: newPollData.status, pollPrompt: newPollData.prompt });
+		const responseCount = newPollData.responses ? Object.keys(newPollData.responses).length : 0;
+		logger.debug(`Formbar classUpdate: status=${newPollData.status}, prompt="${newPollData.prompt || ''}", responses=${newPollData.totalResponses}/${newPollData.totalResponders}, options=${responseCount}, timerActive=${timerData.active}`);
 		const pollIsVisible = !!(newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0));
 		state.pollLockActive = pollIsVisible;
 
@@ -70,6 +83,10 @@ function handleClassUpdate() {
 
 		// Continue processing if poll has responses (whether active or ended)
 		if (newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0)) {
+			/**
+			 * Normalize poll responses to array format.
+			 * @returns {Array<{answer?: string, responses: number, color?: string|number}>} Poll responses array.
+			 */
 			const getResponsesArray = () => {
 				if (Array.isArray(newPollData.responses)) {
 					return newPollData.responses
@@ -84,16 +101,18 @@ function handleClassUpdate() {
 				pollResponses += poll.responses
 			}
 
-			// if (newPollData.totalResponses === 6 && newPollData.totalResponders === 9) {
-			// 	if (player) player.play('./sfx/memeSFX/noice.wav')
-			// }
+			if (newPollData.totalResponses === 4 && newPollData.totalResponders === 20) {
+				emitSoundToWebClients(webIo, './sfx/memeSFX/snoop.wav')
+			}
 
-			// if (newPollData.totalResponses === 6 && newPollData.totalResponders === 7) {
-			// 	if (player) player.play('./sfx/memeSFX/brainrot.wav')
-			// }
+			if (newPollData.totalResponses === 6 && newPollData.totalResponders === 9) {
+				emitSoundToWebClients(webIo, './sfx/memeSFX/noice.wav')
+			}
 
-			// if (newPollData.totalResponses === 4 && newPollData.totalResponders === 20) {
-			// 	if (player) player.play('./sfx/memeSFX/snoop.wav')
+			if (newPollData.totalResponses === 6 && newPollData.totalResponders === 7) {
+				emitSoundToWebClients(webIo, './sfx/memeSFX/brainrot.wav')
+			}
+
 			if (!timerData.active) {
 				fill(pixels, 0x808080, 0, config.barPixels)
 
@@ -107,6 +126,11 @@ function handleClassUpdate() {
 					if (newPollData.prompt == 'Thumbs?') {
 						fill(pixels, 0x000000, config.barPixels)
 
+						/**
+						 * Find a response object by answer text.
+						 * @param {string} answerText - Answer label to match.
+						 * @returns {{answer?: string, responses: number, color?: string|number}|undefined} Matching response.
+						 */
 						const findResponse = (answerText) => {
 							return responsesArray.find(r => r.answer === answerText)
 						}
@@ -114,16 +138,12 @@ function handleClassUpdate() {
 						const upResponses = findResponse('Up')
 						if (upResponses && upResponses.responses == newPollData.totalResponders) {
 							gradient(pixels, 0x0000FF, 0xFF0000, 0, config.barPixels)
-							let text = [
-								'Max Gamer',
-								'Skibidi Rizz!',
-								'Plus 100 Aura'
-							]
+							let text = ['Max Gamer', 'Skibidi Rizz!']
 							let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0x00FF00, 0x000000, config, boardIntervals, ws281x)
 							if (!display) return
 							boardIntervals.push(display)
 
-							playSound({ formbar: 'sfx_success01.wav' });
+							emitSoundToWebClients(webIo, './sfx/formbarSFX/sfx_success01.wav')
 
 							specialDisplay = true
 							return
@@ -131,12 +151,11 @@ function handleClassUpdate() {
 
 						const wiggleResponse = findResponse('Wiggle')
 						if (wiggleResponse && wiggleResponse.responses == newPollData.totalResponders) {
-							playSound({ meme: 'bruh.wav' });
+							emitSoundToWebClients(webIo, './sfx/memeSFX/bruh.wav')
 
 							let text = [
 								'Wiggle Nation: Where democracy meets indecision!',
-								'Wiggle-o-mania: The cure for decision-making paralysis!',
-								'Wiggle Wiggle Wiggle'
+								'Wiggle-o-mania: The cure for decision-making paralysis!'
 							]
 
 							text = text[Math.floor(Math.random() * text.length)]
@@ -144,21 +163,22 @@ function handleClassUpdate() {
 							let display = displayBoard(pixels, text, 0x00FFFF, 0x000000, config, boardIntervals, ws281x)
 							if (!display) return
 							boardIntervals.push(display)
+
 							specialDisplay = true
 						}
 
 						const downResponse = findResponse('Down')
 						if (downResponse && downResponse.responses == newPollData.totalResponders) {
-							playSound({ meme: 'womp-womp.wav' });
+							emitSoundToWebClients(webIo, './sfx/memeSFX/wompwomp.wav')
 							let text = [
-								'Git Gud lol',
+								'Git Gud',
 								'Skill Issue',
-								'Guh, Buh, Fluh, do better',
-								'Imagine getting all downs, could never be me'
+								'L + Ratio'
 							]
 							let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0xFF0000, 0x000000, config, boardIntervals, ws281x)
 							if (!display) return
 							boardIntervals.push(display)
+
 							specialDisplay = true
 						}
 					}
@@ -223,14 +243,13 @@ function handleClassUpdate() {
 					if (display) boardIntervals.push(display)
 				}
 
+				state.pollData = newPollData
+
 				ws281x.render()
 			}
 		}
-
-		state.pollData = newPollData
 	}
 }
-
 
 module.exports = {
 	handleClassUpdate
