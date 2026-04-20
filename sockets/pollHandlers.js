@@ -191,23 +191,23 @@ function handleClassUpdate() {
 					}
 					pollNumber++
 				}
+
+				if (!specialDisplay) {
+					text = `${newPollData.totalResponses}/${newPollData.totalResponders} `
+					if (newPollData.prompt) pollText = newPollData.prompt
+
+					let display = displayBoard(pixels, text, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
+					if (display) boardIntervals.push(display)
+
+					display = displayBoard(pixels, pollText, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x, getStringColumnLength(text))
+					if (display) boardIntervals.push(display)
+				}
+
+				ws281x.render()
 			}
 		}
 
-		if (!specialDisplay) {
-			text = `${newPollData.totalResponses}/${newPollData.totalResponders} `
-			if (newPollData.prompt) pollText = newPollData.prompt
-
-			let display = displayBoard(pixels, text, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
-			if (display) boardIntervals.push(display)
-
-			display = displayBoard(pixels, pollText, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x, getStringColumnLength(text))
-			if (display) boardIntervals.push(display)
-		}
-
 		state.pollData = newPollData
-
-		ws281x.render()
 	}
 }
 
