@@ -8,7 +8,6 @@ const { fill, gradient } = require('../utils/pixelOps');
 const { displayBoard, getStringColumnLength } = require('../utils/displayUtils');
 const { playSound, player } = require('../utils/soundUtils');
 const PIXELS_PER_LETTER = 5;
-const POLL_CLEAR_DEBOUNCE_MS = 1500;
 
 /**
  * @typedef {{ poll: Record<string, unknown> }} ClassroomData
@@ -34,24 +33,9 @@ function handleClassUpdate() {
 		logger.debug('Class update received', { pollStatus: newPollData.status, pollPrompt: newPollData.prompt });
 		const pollIsVisible = !!(newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0));
 		state.pollLockActive = pollIsVisible;
-		if (pollIsVisible) state.pollClearCandidateSince = null;
 
 		// Only clear the bar when poll is cleared (by the teacher), not when it's just ended
 		if (!newPollData.status && (!newPollData.responses || Object.keys(newPollData.responses).length === 0)) {
-			const now = Date.now();
-			if (!state.pollClearCandidateSince) {
-				state.pollClearCandidateSince = now;
-				state.pollData = newPollData;
-				return;
-			}
-
-			if (now - state.pollClearCandidateSince < POLL_CLEAR_DEBOUNCE_MS) {
-				state.pollData = newPollData;
-				return;
-			}
-
-			state.pollClearCandidateSince = null;
-			state.pollLockActive = false;
 			fill(pixels, 0x000000, 0, config.barPixels)
 
 			let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
@@ -213,10 +197,6 @@ function handleClassUpdate() {
 		if (!specialDisplay) {
 			text = `${newPollData.totalResponses}/${newPollData.totalResponders} `
 			if (newPollData.prompt) pollText = newPollData.prompt
-
-			const boardStartPixel = config.barPixels
-			const boardLength = config.boards * 32 * 8
-			fill(pixels, 0x000000, boardStartPixel, boardLength)
 
 			let display = displayBoard(pixels, text, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
 			if (display) boardIntervals.push(display)
