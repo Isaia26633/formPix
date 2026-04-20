@@ -73,8 +73,6 @@ let state = {
 	socket,
 	classId: null,
 	pollData: {},
-	pollLockActive: false,
-	pollClearCandidateSince: null,
 	boardIntervals: [],
 	currentDisplayMessage: null,
 	timerData: {
@@ -82,6 +80,11 @@ let state = {
 		timeLeft: 0,
 		active: false,
 		sound: false
+	},
+	permissionCache: {
+		apiKey: null,
+		classId: null,
+		expiresAt: 0
 	},
 	sounds: loadSounds(),
 	isPlayingSound: false,

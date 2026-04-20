@@ -20,8 +20,35 @@ const PIXELS_PER_LETTER = 5;
  * @returns {Promise<void>} Resolves after all emits complete.
  */
 async function emitSoundToWebClients(webIo, file) {
+	if (!webIo || typeof webIo.fetchSockets !== 'function') return
 	let sockets = await webIo.fetchSockets()
 	for (let socket of sockets) socket.emit('play', file)
+}
+
+function stopNonPollActivity(state) {
+	const pixelControllers = require('../controllers/pixelControllers');
+	const raveControllers = require('../controllers/raveControllers');
+	const { fill } = require('../utils/pixelOps');
+
+	pixelControllers.stopProgressAnimation();
+
+	if (raveControllers.currentRaveInterval) {
+		clearInterval(raveControllers.currentRaveInterval);
+		raveControllers.currentRaveInterval = null;
+	}
+
+	for (let interval of state.boardIntervals) {
+		if (interval && interval.interval) {
+			clearInterval(interval.interval);
+		}
+	}
+	state.boardIntervals.length = 0;
+	state.currentDisplayMessage = null;
+	state.lastDisplayUpdate = null;
+
+	// Hard clear the bar immediately so no previous animation frame remains.
+	fill(state.pixels, 0x000000, 0, state.config.barPixels);
+	state.ws281x.render();
 }
 
 /**
@@ -45,26 +72,12 @@ function handleClassUpdate(webIo) {
 		const responseCount = newPollData.responses ? Object.keys(newPollData.responses).length : 0;
 		logger.debug(`Formbar classUpdate: status=${newPollData.status}, prompt="${newPollData.prompt || ''}", responses=${newPollData.totalResponses}/${newPollData.totalResponders}, options=${responseCount}, timerActive=${timerData.active}`);
 		const pollIsVisible = !!(newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0));
-		state.pollLockActive = pollIsVisible;
+		const pollWasVisible = !!(pollData.status || (pollData.responses && Object.keys(pollData.responses).length > 0));
+		const pollBecameActive = Boolean(newPollData.status) && !Boolean(pollData.status);
 
-		// When a poll becomes visible, stop all non-poll activity
-		if (pollIsVisible && !util.isDeepStrictEqual(newPollData, pollData)) {
-			// Stop any active progress animation
-			const pixelControllers = require('../controllers/pixelControllers');
-			pixelControllers.stopProgressAnimation();
-
-			// Clear all board intervals to prevent flickering from stale displays
-			for (let interval of boardIntervals) {
-				if (interval && interval.interval) {
-					clearInterval(interval.interval);
-				}
-			}
-			boardIntervals.length = 0;
-
-			// Clear board pixel area so new text renders cleanly
-			const boardStartPixel = config.barPixels;
-			const boardLength = config.boards * 32 * 8;
-			fill(pixels, 0x000000, boardStartPixel, boardLength);
+		// When a poll becomes active, stop all non-poll visuals immediately.
+		if (pollBecameActive || (pollIsVisible && !pollWasVisible)) {
+			stopNonPollActivity(state);
 		}
 
 		// Only clear the bar when poll is cleared (by the teacher), not when it's just ended
