@@ -46,6 +46,12 @@ function stopNonPollActivity(state) {
 	state.lastDisplayUpdate = null;
 }
 
+function setPollLockState(state, isActive) {
+	if (state.pollLock.active === isActive) return;
+	state.pollLock.active = isActive;
+	state.pollLock.activatedAt = isActive ? new Date().toISOString() : null;
+}
+
 /**
  * Handle class update with poll data
  * @param {WebIo} webIo socket.io server instance
@@ -68,6 +74,9 @@ function handleClassUpdate(webIo) {
 		logger.debug(`Formbar classUpdate: status=${newPollData.status}, prompt="${newPollData.prompt || ''}", responses=${newPollData.totalResponses}/${newPollData.totalResponders}, options=${responseCount}, timerActive=${timerData.active}`);
 		const pollIsVisible = !!(newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0));
 		const pollWasVisible = !!(pollData.status || (pollData.responses && Object.keys(pollData.responses).length > 0));
+		const pollIsActive = Boolean(newPollData.status);
+
+		setPollLockState(state, pollIsActive);
 
 		// When a poll first becomes visible, stop non-poll bar activity.
 		if (pollIsVisible && !pollWasVisible) {
@@ -76,6 +85,7 @@ function handleClassUpdate(webIo) {
 
 		// Only clear the bar when poll is cleared (by the teacher), not when it's just ended
 		if (!newPollData.status && (!newPollData.responses || Object.keys(newPollData.responses).length === 0)) {
+			setPollLockState(state, false);
 			fill(pixels, 0x000000, 0, config.barPixels)
 
 			let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)

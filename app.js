@@ -16,6 +16,7 @@ const state = require('./state');
 // Import middleware
 const checkConnection = require('./middleware/checkConnection');
 const checkPermissions = require('./middleware/checkPermissions');
+const enforcePollLock = require('./middleware/enforcePollLock');
 const validateQueryParams = require('./middleware/validateQueryParams');
 const handle404 = require('./middleware/handle404');
 
@@ -54,6 +55,7 @@ const httpServer = http.createServer(app);
 // Middleware
 app.use(checkConnection);
 app.use(checkPermissions);
+app.use(enforcePollLock);
 app.use(validateQueryParams);
 
 // Routes

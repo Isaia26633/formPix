@@ -88,6 +88,10 @@ let state = {
 	},
 	sounds: loadSounds(),
 	isPlayingSound: false,
+	pollLock: {
+		active: false,
+		activatedAt: null
+	},
 	BOARD_WIDTH,
 	BOARD_HEIGHT,
 	REQUIRED_PERMISSION
