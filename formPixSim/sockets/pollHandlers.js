@@ -54,14 +54,6 @@ function handleClassUpdate(webIo) {
 			const pixelControllers = require('../controllers/pixelControllers');
 			pixelControllers.stopProgressAnimation();
 
-			// Clear all board intervals to prevent flickering from stale displays
-			for (let interval of boardIntervals) {
-				if (interval && interval.interval) {
-					clearInterval(interval.interval);
-				}
-			}
-			boardIntervals.length = 0;
-
 			// Clear board pixel area so new text renders cleanly
 			const boardStartPixel = config.barPixels;
 			const boardLength = config.boards * 32 * 8;
