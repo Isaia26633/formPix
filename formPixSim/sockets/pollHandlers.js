@@ -25,6 +25,27 @@ async function emitSoundToWebClients(webIo, file) {
 	for (let socket of sockets) socket.emit('play', file)
 }
 
+function stopNonPollActivity(state) {
+	const pixelControllers = require('../controllers/pixelControllers');
+	const raveControllers = require('../controllers/raveControllers');
+
+	pixelControllers.stopProgressAnimation();
+
+	if (raveControllers.currentRaveInterval) {
+		clearInterval(raveControllers.currentRaveInterval);
+		raveControllers.currentRaveInterval = null;
+	}
+
+	for (let interval of state.boardIntervals) {
+		if (interval && interval.interval) {
+			clearInterval(interval.interval);
+		}
+	}
+	state.boardIntervals.length = 0;
+	state.currentDisplayMessage = null;
+	state.lastDisplayUpdate = null;
+}
+
 /**
  * Handle class update with poll data
  * @param {WebIo} webIo socket.io server instance
@@ -51,17 +72,7 @@ function handleClassUpdate(webIo) {
 
 		// When a poll first becomes visible, stop non-poll bar activity.
 		if (pollIsVisible && !pollWasVisible) {
-			// Stop any active progress animation
-			const pixelControllers = require('../controllers/pixelControllers');
-			pixelControllers.stopProgressAnimation();
-
-			// Stop any prior board scrolling text so it cannot overwrite the poll
-			for (let interval of boardIntervals) {
-				if (interval && interval.interval) {
-					clearInterval(interval.interval);
-				}
-			}
-			boardIntervals.length = 0;
+			stopNonPollActivity(state);
 		}
 
 		// Only clear the bar when poll is cleared (by the teacher), not when it's just ended

@@ -17,6 +17,7 @@ const state = require('./state');
 const checkConnection = require('./middleware/checkConnection');
 const checkPermissions = require('./middleware/checkPermissions');
 const validateQueryParams = require('./middleware/validateQueryParams');
+const pollLock = require('./middleware/pollLock');
 const handle404 = require('./middleware/handle404');
 
 // Import routes
@@ -55,6 +56,7 @@ const httpServer = http.createServer(app);
 app.use(checkConnection);
 app.use(checkPermissions);
 app.use(validateQueryParams);
+app.use('/api', pollLock);
 
 // Routes
 

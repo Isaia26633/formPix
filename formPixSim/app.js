@@ -13,6 +13,7 @@ const state = require('./state');
 const checkConnection = require('./middleware/checkConnection');
 const checkPermissions = require('./middleware/checkPermissions');
 const validateQueryParams = require('./middleware/validateQueryParams');
+const pollLock = require('./middleware/pollLock');
 const handle404 = require('./middleware/handle404');
 
 // Import routes
@@ -53,6 +54,7 @@ const webIo = require('socket.io')(httpServer);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/static'));
 app.use('/sfx', express.static(__dirname + '/sfx'));
+app.use('/api', pollLock);
 
 
 // Set EJS as view engine
