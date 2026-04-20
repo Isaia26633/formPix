@@ -4,10 +4,6 @@
 
 const logger = require('../utils/logger');
 
-function isFormbarRequest(apiKey, formbarApiKey) {
-	return Boolean(apiKey) && Boolean(formbarApiKey) && apiKey === formbarApiKey;
-}
-
 function extractHost(value) {
 	if (!value) return null;
 	try {
@@ -19,7 +15,6 @@ function extractHost(value) {
 
 function checkPollLock(req, res, next) {
 	const { pollLock, config } = require('../state');
-	const apiKey = req.headers.api;
 	const formbarHost = extractHost(config.formbarUrl);
 	const originHost = extractHost(req.headers.origin);
 	const refererHost = extractHost(req.headers.referer);
@@ -30,7 +25,7 @@ function checkPollLock(req, res, next) {
 		return;
 	}
 
-	if (isFormbarRequest(apiKey, config.api) || trustedOrigin) {
+	if (trustedOrigin) {
 		next();
 		return;
 	}

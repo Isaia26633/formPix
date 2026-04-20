@@ -25,9 +25,6 @@ function extractHost(value) {
 }
 
 function isRequestFromFormbar(req, config) {
-	const apiKey = req.headers.api;
-	if (apiKey && config.api && apiKey === config.api) return true;
-
 	const formbarHost = extractHost(config.formbarUrl);
 	if (!formbarHost) return false;
 	const originHost = extractHost(req.headers.origin);
