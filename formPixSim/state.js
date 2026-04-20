@@ -116,10 +116,6 @@ let state = {
 		sound: false
 	},
 	sounds: loadSounds(),
-	pollLock: {
-		active: false,
-		activatedAt: null
-	},
 	BOARD_WIDTH,
 	BOARD_HEIGHT,
 	REQUIRED_PERMISSION

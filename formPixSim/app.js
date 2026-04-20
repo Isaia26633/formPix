@@ -12,7 +12,6 @@ const state = require('./state');
 // Import middleware
 const checkConnection = require('./middleware/checkConnection');
 const checkPermissions = require('./middleware/checkPermissions');
-const enforcePollLock = require('./middleware/enforcePollLock');
 const validateQueryParams = require('./middleware/validateQueryParams');
 const handle404 = require('./middleware/handle404');
 
@@ -118,7 +117,6 @@ app.get('/', renderIndexPage);
 // API Routes
 app.use('/api', checkConnection);
 app.use('/api', checkPermissions);
-app.use('/api', enforcePollLock);
 app.use('/api', validateQueryParams);
 app.use('/api', pixelRoutes);
 app.use('/api', displayRoutes);
