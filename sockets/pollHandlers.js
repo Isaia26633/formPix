@@ -32,11 +32,10 @@ function handleClassUpdate() {
 
 		logger.debug('Class update received', { pollStatus: newPollData.status, pollPrompt: newPollData.prompt });
 		const pollIsVisible = !!(newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0));
-		const pollWasVisible = !!(pollData && (pollData.status || (pollData.responses && Object.keys(pollData.responses).length > 0)));
 		state.pollLockActive = pollIsVisible;
 
-		// When a poll becomes visible (transitions from hidden to visible), stop all non-poll activity
-		if (pollIsVisible && !pollWasVisible) {
+		// When a poll becomes visible, stop all non-poll activity
+		if (pollIsVisible && !util.isDeepStrictEqual(newPollData, pollData)) {
 			// Stop any active progress animation
 			const pixelControllers = require('../controllers/pixelControllers');
 			pixelControllers.stopProgressAnimation();
