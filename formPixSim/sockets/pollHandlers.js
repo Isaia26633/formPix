@@ -47,6 +47,21 @@ function handleClassUpdate(webIo) {
 		const pollIsVisible = !!(newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0));
 		state.pollLockActive = pollIsVisible;
 
+		// When a poll becomes visible, stop all non-poll activity
+		if (pollIsVisible && !util.isDeepStrictEqual(newPollData, pollData)) {
+			// Stop any active progress animation
+			const pixelControllers = require('../controllers/pixelControllers');
+			pixelControllers.stopProgressAnimation();
+
+			// Clear all board intervals to prevent flickering from stale displays
+			for (let interval of boardIntervals) {
+				if (interval && interval.interval) {
+					clearInterval(interval.interval);
+				}
+			}
+			boardIntervals.length = 0;
+		}
+
 		// Only clear the bar when poll is cleared (by the teacher), not when it's just ended
 		if (!newPollData.status && (!newPollData.responses || Object.keys(newPollData.responses).length === 0)) {
 			fill(pixels, 0x000000, 0, config.barPixels)
