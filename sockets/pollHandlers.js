@@ -28,6 +28,7 @@ async function emitSoundToWebClients(webIo, file) {
 function stopNonPollActivity(state) {
 	const pixelControllers = require('../controllers/pixelControllers');
 	const raveControllers = require('../controllers/raveControllers');
+	const { fill } = require('../utils/pixelOps');
 
 	pixelControllers.stopProgressAnimation();
 
@@ -44,6 +45,10 @@ function stopNonPollActivity(state) {
 	state.boardIntervals.length = 0;
 	state.currentDisplayMessage = null;
 	state.lastDisplayUpdate = null;
+
+	// Hard clear the bar immediately so no previous animation frame remains.
+	fill(state.pixels, 0x000000, 0, state.config.barPixels);
+	state.ws281x.render();
 }
 
 /**
@@ -69,9 +74,10 @@ function handleClassUpdate(webIo) {
 		const pollIsVisible = !!(newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0));
 		state.pollLock.vpixelsLocked = Boolean(newPollData.status);
 		const pollWasVisible = !!(pollData.status || (pollData.responses && Object.keys(pollData.responses).length > 0));
+		const pollBecameActive = Boolean(newPollData.status) && !Boolean(pollData.status);
 
-		// When a poll first becomes visible, stop non-poll bar activity.
-		if (pollIsVisible && !pollWasVisible) {
+		// When a poll becomes active, stop all non-poll visuals immediately.
+		if (pollBecameActive || (pollIsVisible && !pollWasVisible)) {
 			stopNonPollActivity(state);
 		}
 

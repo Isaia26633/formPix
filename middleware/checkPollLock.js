@@ -8,16 +8,29 @@ function isFormbarRequest(apiKey, formbarApiKey) {
 	return Boolean(apiKey) && Boolean(formbarApiKey) && apiKey === formbarApiKey;
 }
 
+function extractHost(value) {
+	if (!value) return null;
+	try {
+		return new URL(value).host;
+	} catch (_) {
+		return null;
+	}
+}
+
 function checkPollLock(req, res, next) {
 	const { pollLock, config } = require('../state');
 	const apiKey = req.headers.api;
+	const formbarHost = extractHost(config.formbarUrl);
+	const originHost = extractHost(req.headers.origin);
+	const refererHost = extractHost(req.headers.referer);
+	const trustedOrigin = formbarHost && (originHost === formbarHost || refererHost === formbarHost);
 
 	if (!pollLock.vpixelsLocked) {
 		next();
 		return;
 	}
 
-	if (isFormbarRequest(apiKey, config.api)) {
+	if (isFormbarRequest(apiKey, config.api) || trustedOrigin) {
 		next();
 		return;
 	}
