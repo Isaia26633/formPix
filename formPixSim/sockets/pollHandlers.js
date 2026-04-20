@@ -45,10 +45,11 @@ function handleClassUpdate(webIo) {
 		const responseCount = newPollData.responses ? Object.keys(newPollData.responses).length : 0;
 		logger.debug(`Formbar classUpdate: status=${newPollData.status}, prompt="${newPollData.prompt || ''}", responses=${newPollData.totalResponses}/${newPollData.totalResponders}, options=${responseCount}, timerActive=${timerData.active}`);
 		const pollIsVisible = !!(newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0));
+		const pollWasVisible = !!(pollData && (pollData.status || (pollData.responses && Object.keys(pollData.responses).length > 0)));
 		state.pollLockActive = pollIsVisible;
 
-		// When a poll becomes visible, stop all non-poll activity
-		if (pollIsVisible && !util.isDeepStrictEqual(newPollData, pollData)) {
+		// When a poll becomes visible (transitions from hidden to visible), stop all non-poll activity
+		if (pollIsVisible && !pollWasVisible) {
 			// Stop any active progress animation
 			const pixelControllers = require('../controllers/pixelControllers');
 			pixelControllers.stopProgressAnimation();
