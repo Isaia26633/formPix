@@ -81,6 +81,14 @@ let state = {
 		active: false,
 		sound: false
 	},
+	pollLock: {
+		vpixelsLocked: false
+	},
+	permissionCache: {
+		apiKey: null,
+		classId: null,
+		expiresAt: 0
+	},
 	sounds: loadSounds(),
 	isPlayingSound: false,
 	BOARD_WIDTH,
