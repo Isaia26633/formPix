@@ -47,6 +47,11 @@ function handleClassUpdate() {
 				}
 			}
 			boardIntervals.length = 0;
+
+			// Clear board pixel area so new text renders cleanly
+			const boardStartPixel = config.barPixels;
+			const boardLength = config.boards * 32 * 8;
+			fill(pixels, 0x000000, boardStartPixel, boardLength);
 		}
 
 		// Only clear the bar when poll is cleared (by the teacher), not when it's just ended
