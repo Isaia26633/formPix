@@ -8,14 +8,6 @@ const { fill, gradient } = require('../utils/pixelOps');
 const { getPixelNumber } = require('../utils/pixelUtils');
 const raveController = require('./raveControllers');
 
-function hasActivePoll(pollData) {
-	if (!pollData) return false;
-	return !!(
-		pollData.status ||
-		(pollData.responses && Object.keys(pollData.responses).length > 0)
-	);
-}
-
 /**
  * Helper function to cancel any ongoing rave animation
  */
@@ -153,13 +145,6 @@ async function progressController(req, res) {
 				res.status(400).json({ error: 'duration must be a positive number' });
 				return;
 			}
-		}
-
-		// Never start progress while a poll is active.
-		const state = require('../state');
-		if (state.pollLockActive || hasActivePoll(state.pollData)) {
-			res.status(423).json({ error: 'Progress is disabled while a poll is active' });
-			return;
 		}
 
 		// Cancel any existing progress animation
