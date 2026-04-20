@@ -20,6 +20,7 @@ const PIXELS_PER_LETTER = 5;
  * @returns {Promise<void>} Resolves after all emits complete.
  */
 async function emitSoundToWebClients(webIo, file) {
+	if (!webIo || typeof webIo.fetchSockets !== 'function') return
 	let sockets = await webIo.fetchSockets()
 	for (let socket of sockets) socket.emit('play', file)
 }
@@ -45,26 +46,22 @@ function handleClassUpdate(webIo) {
 		const responseCount = newPollData.responses ? Object.keys(newPollData.responses).length : 0;
 		logger.debug(`Formbar classUpdate: status=${newPollData.status}, prompt="${newPollData.prompt || ''}", responses=${newPollData.totalResponses}/${newPollData.totalResponders}, options=${responseCount}, timerActive=${timerData.active}`);
 		const pollIsVisible = !!(newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0));
+		const pollWasVisible = !!(pollData.status || (pollData.responses && Object.keys(pollData.responses).length > 0));
 		state.pollLockActive = pollIsVisible;
 
-		// When a poll becomes visible, stop all non-poll activity
-		if (pollIsVisible && !util.isDeepStrictEqual(newPollData, pollData)) {
+		// When a poll first becomes visible, stop non-poll bar activity.
+		if (pollIsVisible && !pollWasVisible) {
 			// Stop any active progress animation
 			const pixelControllers = require('../controllers/pixelControllers');
 			pixelControllers.stopProgressAnimation();
 
-			// Clear all board intervals to prevent flickering from stale displays
+			// Stop any prior board scrolling text so it cannot overwrite the poll
 			for (let interval of boardIntervals) {
 				if (interval && interval.interval) {
 					clearInterval(interval.interval);
 				}
 			}
 			boardIntervals.length = 0;
-
-			// Clear board pixel area so new text renders cleanly
-			const boardStartPixel = config.barPixels;
-			const boardLength = config.boards * 32 * 8;
-			fill(pixels, 0x000000, boardStartPixel, boardLength);
 		}
 
 		// Only clear the bar when poll is cleared (by the teacher), not when it's just ended
