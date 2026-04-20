@@ -4,40 +4,12 @@
 
 const logger = require('../utils/logger');
 
-const POLL_LOCKED_PIXEL_PATHS = new Set([
-	'/api/fill',
-	'/api/fillByPercent',
-	'/api/gradient',
-	'/api/setPixel',
-	'/api/setPixels',
-	'/api/progress',
-	'/api/rave',
-	'/api/rave/stop'
-]);
-
-function extractHost(value) {
-	if (!value) return null;
-	try {
-		return new URL(value).host;
-	} catch (_) {
-		return null;
-	}
-}
-
-function isRequestFromFormbar(req, config) {
-	const formbarHost = extractHost(config.formbarUrl);
-	if (!formbarHost) return false;
-	const originHost = extractHost(req.headers.origin);
-	const refererHost = extractHost(req.headers.referer);
-	return originHost === formbarHost || refererHost === formbarHost;
-}
-
 /**
  * Check user permissions
  */
 async function checkPermissions(req, res, next) {
 	try {
-		const { config, REQUIRED_PERMISSION, classId, permissionCache, pollLock } = require('../state');
+		const { config, REQUIRED_PERMISSION, classId, permissionCache } = require('../state');
 		
 		let apiKey = req.headers.api
 
@@ -66,13 +38,6 @@ async function checkPermissions(req, res, next) {
 			logger.warn('Permission check failed: Missing API key', { url: req.url });
 			res.status(400).json({ error: 'Missing API key' })
 			return
-		}
-
-		// During active polls, only allow trusted formbar-origin requests to mutate vPixels.
-		if (pollLock?.vpixelsLocked && POLL_LOCKED_PIXEL_PATHS.has(urlPath) && !isRequestFromFormbar(req, config)) {
-			logger.info('Permission check blocked by poll lock', { url: req.url, method: req.method });
-			res.status(423).json({ source: 'Formpix', error: 'vPixels are locked while a poll is active' });
-			return;
 		}
 
 		// Allow trusted server-to-server formbar requests without remote permission checks.

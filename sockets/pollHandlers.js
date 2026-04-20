@@ -72,7 +72,6 @@ function handleClassUpdate(webIo) {
 		const responseCount = newPollData.responses ? Object.keys(newPollData.responses).length : 0;
 		logger.debug(`Formbar classUpdate: status=${newPollData.status}, prompt="${newPollData.prompt || ''}", responses=${newPollData.totalResponses}/${newPollData.totalResponders}, options=${responseCount}, timerActive=${timerData.active}`);
 		const pollIsVisible = !!(newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0));
-		state.pollLock.vpixelsLocked = Boolean(newPollData.status);
 		const pollWasVisible = !!(pollData.status || (pollData.responses && Object.keys(pollData.responses).length > 0));
 		const pollBecameActive = Boolean(newPollData.status) && !Boolean(pollData.status);
 

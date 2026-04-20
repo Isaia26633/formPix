@@ -81,9 +81,6 @@ let state = {
 		active: false,
 		sound: false
 	},
-	pollLock: {
-		vpixelsLocked: false
-	},
 	permissionCache: {
 		apiKey: null,
 		classId: null,
