@@ -47,7 +47,7 @@ function handleClassUpdate(webIo) {
 		logger.debug(`Formbar classUpdate: status=${newPollData.status}, prompt="${newPollData.prompt || ''}", responses=${newPollData.totalResponses}/${newPollData.totalResponders}, options=${responseCount}, timerActive=${timerData.active}`);
 		const pollIsVisible = !!(newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0));
 		const pollWasVisible = !!(pollData.status || (pollData.responses && Object.keys(pollData.responses).length > 0));
-		state.pollLockActive = pollIsVisible;
+		state.pollLockActive = true
 
 		// When a poll first becomes visible, stop non-poll bar activity.
 		if (pollIsVisible && !pollWasVisible) {
