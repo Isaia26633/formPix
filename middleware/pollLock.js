@@ -10,7 +10,8 @@ function isFormbarRequest(req) {
 }
 
 function pollLockMiddleware(req, res, next) {
-	const { pollLockActive } = require('../state');
+	const state = require('../state');
+	const { pollLockActive } = state;
 
 	if (!pollLockActive || isFormbarRequest(req)) {
 		next();

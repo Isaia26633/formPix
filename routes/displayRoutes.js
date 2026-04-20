@@ -11,6 +11,6 @@ const pollLock = require('../middleware/pollLock');
 router.post('/say', pollLock, sayController);
 
 // Route to get the current display message
-router.get('/getDisplay', pollLock, getDisplayController);
+router.get('/getDisplay', getDisplayController);
 
 module.exports = router;
