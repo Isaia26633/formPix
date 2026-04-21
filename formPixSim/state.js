@@ -3,41 +3,7 @@
  */
 
 const fs = require('fs');
-
-/**
- * Create a mock LED strip object for simulation.
- * @param {number} numPixels - Number of pixels to allocate.
- * @returns {{array: Uint32Array}} Mock strip object.
- */
-function createMockStrip(numPixels) {
-	return { array: new Uint32Array(numPixels) };
-}
-
-/**
- * Resolve strip type key from proxy access.
- * @param {Record<string, string>} _target - Proxy target object.
- * @param {string|symbol} key - Accessed property key.
- * @returns {string|symbol} Same key for compatibility with callers.
- */
-function getMockStripType(_target, key) {
-	return key;
-}
-
-/**
- * No-op render function used by simulator state before app wires websocket rendering.
- * @returns {void}
- */
-function noopRender() {}
-
-// Mock rpi-ws281x-native for the simulator environment
-const ws281x = Object.assign(
-	createMockStrip,
-	{
-		stripType: new Proxy({}, { get: getMockStripType }),
-		render: noopRender
-	}
-);
-
+const ws281x = require('rpi-ws281x-native');
 const { loadSounds } = require('./utils/soundUtils');
 const env = require('dotenv');
 const { io } = require('socket.io-client');
@@ -116,6 +82,7 @@ let state = {
 		sound: false
 	},
 	sounds: loadSounds(),
+	isPlayingSound: false,
 	BOARD_WIDTH,
 	BOARD_HEIGHT,
 	REQUIRED_PERMISSION
