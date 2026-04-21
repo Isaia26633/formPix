@@ -6,57 +6,18 @@ const logger = require('../utils/logger');
 const util = require('util');
 const { fill, gradient } = require('../utils/pixelOps');
 const { displayBoard, getStringColumnLength } = require('../utils/displayUtils');
+const { playSound, player } = require('../utils/soundUtils');
 const PIXELS_PER_LETTER = 5;
 
 /**
- * @typedef {{fetchSockets: () => Promise<Array<{emit: (event: string, payload?: unknown) => void}>>}} WebIo
  * @typedef {{ poll: Record<string, unknown> }} ClassroomData
  */
 
 /**
- * Emit a sound file to all connected browser clients.
- * @param {WebIo} webIo - Socket.io server instance.
- * @param {string} file - Relative sound file path.
- * @returns {Promise<void>} Resolves after all emits complete.
- */
-async function emitSoundToWebClients(webIo, file) {
-	if (!webIo || typeof webIo.fetchSockets !== 'function') return
-	let sockets = await webIo.fetchSockets()
-	for (let socket of sockets) socket.emit('play', file)
-}
-
-function stopNonPollActivity(state) {
-	const pixelControllers = require('../controllers/pixelControllers');
-	const raveControllers = require('../controllers/raveControllers');
-	const { fill } = require('../utils/pixelOps');
-
-	pixelControllers.stopProgressAnimation();
-
-	if (raveControllers.currentRaveInterval) {
-		clearInterval(raveControllers.currentRaveInterval);
-		raveControllers.currentRaveInterval = null;
-	}
-
-	for (let interval of state.boardIntervals) {
-		if (interval && interval.interval) {
-			clearInterval(interval.interval);
-		}
-	}
-	state.boardIntervals.length = 0;
-	state.currentDisplayMessage = null;
-	state.lastDisplayUpdate = null;
-
-	// Hard clear the bar immediately so no previous animation frame remains.
-	fill(state.pixels, 0x000000, 0, state.config.barPixels);
-	state.ws281x.render();
-}
-
-/**
  * Handle class update with poll data
- * @param {WebIo} webIo socket.io server instance
  * @returns {(classroomData: ClassroomData) => void} Class update callback
  */
-function handleClassUpdate(webIo) {
+function handleClassUpdate() {
 	return (classroomData) => {
 		const state = require('../state');
 		const { pixels, config, boardIntervals, ws281x, pollData, timerData } = state;
@@ -69,16 +30,7 @@ function handleClassUpdate(webIo) {
 
 		if (util.isDeepStrictEqual(newPollData, pollData)) return
 
-		const responseCount = newPollData.responses ? Object.keys(newPollData.responses).length : 0;
-		logger.debug(`Formbar classUpdate: status=${newPollData.status}, prompt="${newPollData.prompt || ''}", responses=${newPollData.totalResponses}/${newPollData.totalResponders}, options=${responseCount}, timerActive=${timerData.active}`);
-		const pollIsVisible = !!(newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0));
-		const pollWasVisible = !!(pollData.status || (pollData.responses && Object.keys(pollData.responses).length > 0));
-		const pollBecameActive = Boolean(newPollData.status) && !Boolean(pollData.status);
-
-		// When a poll becomes active, stop all non-poll visuals immediately.
-		if (pollBecameActive || (pollIsVisible && !pollWasVisible)) {
-			stopNonPollActivity(state);
-		}
+		logger.debug('Class update received', { pollStatus: newPollData.status, pollPrompt: newPollData.prompt });
 
 		// Only clear the bar when poll is cleared (by the teacher), not when it's just ended
 		if (!newPollData.status && (!newPollData.responses || Object.keys(newPollData.responses).length === 0)) {
@@ -96,10 +48,6 @@ function handleClassUpdate(webIo) {
 
 		// Continue processing if poll has responses (whether active or ended)
 		if (newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0)) {
-			/**
-			 * Normalize poll responses to array format.
-			 * @returns {Array<{answer?: string, responses: number, color?: string|number}>} Poll responses array.
-			 */
 			const getResponsesArray = () => {
 				if (Array.isArray(newPollData.responses)) {
 					return newPollData.responses
@@ -114,18 +62,16 @@ function handleClassUpdate(webIo) {
 				pollResponses += poll.responses
 			}
 
-			if (newPollData.totalResponses === 4 && newPollData.totalResponders === 20) {
-				emitSoundToWebClients(webIo, './sfx/memeSFX/snoop.wav')
-			}
+			// if (newPollData.totalResponses === 6 && newPollData.totalResponders === 9) {
+			// 	if (player) player.play('./sfx/memeSFX/noice.wav')
+			// }
 
-			if (newPollData.totalResponses === 6 && newPollData.totalResponders === 9) {
-				emitSoundToWebClients(webIo, './sfx/memeSFX/noice.wav')
-			}
+			// if (newPollData.totalResponses === 6 && newPollData.totalResponders === 7) {
+			// 	if (player) player.play('./sfx/memeSFX/brainrot.wav')
+			// }
 
-			if (newPollData.totalResponses === 6 && newPollData.totalResponders === 7) {
-				emitSoundToWebClients(webIo, './sfx/memeSFX/brainrot.wav')
-			}
-
+			// if (newPollData.totalResponses === 4 && newPollData.totalResponders === 20) {
+			// 	if (player) player.play('./sfx/memeSFX/snoop.wav')
 			if (!timerData.active) {
 				fill(pixels, 0x808080, 0, config.barPixels)
 
@@ -139,11 +85,6 @@ function handleClassUpdate(webIo) {
 					if (newPollData.prompt == 'Thumbs?') {
 						fill(pixels, 0x000000, config.barPixels)
 
-						/**
-						 * Find a response object by answer text.
-						 * @param {string} answerText - Answer label to match.
-						 * @returns {{answer?: string, responses: number, color?: string|number}|undefined} Matching response.
-						 */
 						const findResponse = (answerText) => {
 							return responsesArray.find(r => r.answer === answerText)
 						}
@@ -151,12 +92,16 @@ function handleClassUpdate(webIo) {
 						const upResponses = findResponse('Up')
 						if (upResponses && upResponses.responses == newPollData.totalResponders) {
 							gradient(pixels, 0x0000FF, 0xFF0000, 0, config.barPixels)
-							let text = ['Max Gamer', 'Skibidi Rizz!']
+							let text = [
+								'Max Gamer',
+								'Skibidi Rizz!',
+								'Plus 100 Aura'
+							]
 							let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0x00FF00, 0x000000, config, boardIntervals, ws281x)
 							if (!display) return
 							boardIntervals.push(display)
 
-							emitSoundToWebClients(webIo, './sfx/formbarSFX/sfx_success01.wav')
+							playSound({ formbar: 'sfx_success01.wav' });
 
 							specialDisplay = true
 							return
@@ -164,11 +109,12 @@ function handleClassUpdate(webIo) {
 
 						const wiggleResponse = findResponse('Wiggle')
 						if (wiggleResponse && wiggleResponse.responses == newPollData.totalResponders) {
-							emitSoundToWebClients(webIo, './sfx/memeSFX/bruh.wav')
+							playSound({ meme: 'bruh.wav' });
 
 							let text = [
 								'Wiggle Nation: Where democracy meets indecision!',
-								'Wiggle-o-mania: The cure for decision-making paralysis!'
+								'Wiggle-o-mania: The cure for decision-making paralysis!',
+								'Wiggle Wiggle Wiggle'
 							]
 
 							text = text[Math.floor(Math.random() * text.length)]
@@ -176,22 +122,21 @@ function handleClassUpdate(webIo) {
 							let display = displayBoard(pixels, text, 0x00FFFF, 0x000000, config, boardIntervals, ws281x)
 							if (!display) return
 							boardIntervals.push(display)
-
 							specialDisplay = true
 						}
 
 						const downResponse = findResponse('Down')
 						if (downResponse && downResponse.responses == newPollData.totalResponders) {
-							emitSoundToWebClients(webIo, './sfx/memeSFX/wompwomp.wav')
+							playSound({ meme: 'womp-womp.wav' });
 							let text = [
-								'Git Gud',
+								'Git Gud lol',
 								'Skill Issue',
-								'L + Ratio'
+								'Guh, Buh, Fluh, do better',
+								'Imagine getting all downs, could never be me'
 							]
 							let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0xFF0000, 0x000000, config, boardIntervals, ws281x)
 							if (!display) return
 							boardIntervals.push(display)
-
 							specialDisplay = true
 						}
 					}
@@ -209,18 +154,22 @@ function handleClassUpdate(webIo) {
 					totalResponses += poll.responses
 				}
 
-				// Reserve one visible slot per responder so unanswered votes stay empty on the bar.
-				const totalVoteSlots = Number(newPollData.totalResponders) || 0
-				const dividerCount = totalVoteSlots > 0 ? totalVoteSlots - 1 : 0
-				const availablePixelsForResponses = Math.max(0, config.barPixels - dividerCount)
-				const pixelsPerStudent = totalVoteSlots > 0 ? Math.floor(availablePixelsForResponses / totalVoteSlots) : 0
-				let remainingVoteSlots = totalVoteSlots
+				// Reserve pixels for dividers (one between each response except the last)
+				const dividerCount = totalResponses > 0 ? totalResponses - 1 : 0
+				const availablePixelsForResponses = config.barPixels - dividerCount
+
+				if (newPollData.multiRes) {
+					if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
+					else pixelsPerStudent = Math.floor(availablePixelsForResponses / totalResponses / newPollData.totalResponders)
+				} else {
+					if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
+					else pixelsPerStudent = Math.floor(availablePixelsForResponses / totalResponses)
+				}
 
 				let currentPixel = 0
 				let pollNumber = 0
 				for (let poll of Object.values(newPollData.responses)) {
 					for (let responseNumber = 0; responseNumber < poll.responses; responseNumber++) {
-						if (remainingVoteSlots <= 0) break
 						let color = poll.color
 
 						if (blind) color = 0xFF8000
@@ -232,7 +181,6 @@ function handleClassUpdate(webIo) {
 						fill(pixels, color, currentPixel, pixelsToFill)
 
 						currentPixel += pixelsToFill
-						remainingVoteSlots--
 
 						const isLastResponse = responseNumber === poll.responses - 1 && pollNumber >= nonEmptyPolls
 						if (!blind && !isLastResponse) {
@@ -244,25 +192,30 @@ function handleClassUpdate(webIo) {
 					}
 					pollNumber++
 				}
-
-				if (!specialDisplay) {
-					text = `${newPollData.totalResponses}/${newPollData.totalResponders} `
-					if (newPollData.prompt) pollText = newPollData.prompt
-
-					let display = displayBoard(pixels, text, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
-					if (display) boardIntervals.push(display)
-
-					display = displayBoard(pixels, pollText, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x, getStringColumnLength(text))
-					if (display) boardIntervals.push(display)
-				}
-
-				state.pollData = newPollData
-
-				ws281x.render()
 			}
 		}
+
+		if (!specialDisplay) {
+			text = `${newPollData.totalResponses}/${newPollData.totalResponders} `
+			if (newPollData.prompt) pollText = newPollData.prompt
+
+			const boardStartPixel = config.barPixels
+			const boardLength = config.boards * 32 * 8
+			fill(pixels, 0x000000, boardStartPixel, boardLength)
+
+			let display = displayBoard(pixels, text, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
+			if (display) boardIntervals.push(display)
+
+			display = displayBoard(pixels, pollText, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x, getStringColumnLength(text))
+			if (display) boardIntervals.push(display)
+		}
+
+		state.pollData = newPollData
+
+		ws281x.render()
 	}
 }
+
 
 module.exports = {
 	handleClassUpdate
