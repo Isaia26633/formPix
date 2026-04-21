@@ -20,30 +20,8 @@ const PIXELS_PER_LETTER = 5;
  * @returns {Promise<void>} Resolves after all emits complete.
  */
 async function emitSoundToWebClients(webIo, file) {
-	if (!webIo || typeof webIo.fetchSockets !== 'function') return
 	let sockets = await webIo.fetchSockets()
 	for (let socket of sockets) socket.emit('play', file)
-}
-
-function stopNonPollActivity(state) {
-	const pixelControllers = require('../controllers/pixelControllers');
-	const raveControllers = require('../controllers/raveControllers');
-
-	pixelControllers.stopProgressAnimation();
-
-	if (raveControllers.currentRaveInterval) {
-		clearInterval(raveControllers.currentRaveInterval);
-		raveControllers.currentRaveInterval = null;
-	}
-
-	for (let interval of state.boardIntervals) {
-		if (interval && interval.interval) {
-			clearInterval(interval.interval);
-		}
-	}
-	state.boardIntervals.length = 0;
-	state.currentDisplayMessage = null;
-	state.lastDisplayUpdate = null;
 }
 
 /**
@@ -66,15 +44,8 @@ function handleClassUpdate(webIo) {
 
 		const responseCount = newPollData.responses ? Object.keys(newPollData.responses).length : 0;
 		logger.debug(`Formbar classUpdate: status=${newPollData.status}, prompt="${newPollData.prompt || ''}", responses=${newPollData.totalResponses}/${newPollData.totalResponders}, options=${responseCount}, timerActive=${timerData.active}`);
-		const pollIsVisible = !!(newPollData.status || (newPollData.responses && Object.keys(newPollData.responses).length > 0));
-		const pollWasVisible = !!(pollData.status || (pollData.responses && Object.keys(pollData.responses).length > 0));
 
-		// When a poll first becomes visible, stop non-poll bar activity.
-		if (pollIsVisible && !pollWasVisible) {
-			stopNonPollActivity(state);
-		}
-
-		// Only clear the bar when poll is cleared (by the teacher), not when it's just ended
+		// Only clear the bar when poll is cleared (no responses), not when it's just ended
 		if (!newPollData.status && (!newPollData.responses || Object.keys(newPollData.responses).length === 0)) {
 			fill(pixels, 0x000000, 0, config.barPixels)
 
@@ -203,18 +174,22 @@ function handleClassUpdate(webIo) {
 					totalResponses += poll.responses
 				}
 
-				// Reserve one visible slot per responder so unanswered votes stay empty on the bar.
-				const totalVoteSlots = Number(newPollData.totalResponders) || 0
-				const dividerCount = totalVoteSlots > 0 ? totalVoteSlots - 1 : 0
-				const availablePixelsForResponses = Math.max(0, config.barPixels - dividerCount)
-				const pixelsPerStudent = totalVoteSlots > 0 ? Math.floor(availablePixelsForResponses / totalVoteSlots) : 0
-				let remainingVoteSlots = totalVoteSlots
+				// Reserve pixels for dividers (one between each response except the last)
+				const dividerCount = totalResponses > 0 ? totalResponses - 1 : 0
+				const availablePixelsForResponses = config.barPixels - dividerCount
+
+				if (newPollData.multiRes) {
+					if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
+					else pixelsPerStudent = Math.floor(availablePixelsForResponses / totalResponses / newPollData.totalResponders)
+				} else {
+					if (newPollData.totalResponders <= 0) pixelsPerStudent = 0
+					else pixelsPerStudent = Math.floor(availablePixelsForResponses / totalResponses)
+				}
 
 				let currentPixel = 0
 				let pollNumber = 0
 				for (let poll of Object.values(newPollData.responses)) {
 					for (let responseNumber = 0; responseNumber < poll.responses; responseNumber++) {
-						if (remainingVoteSlots <= 0) break
 						let color = poll.color
 
 						if (blind) color = 0xFF8000
@@ -226,7 +201,6 @@ function handleClassUpdate(webIo) {
 						fill(pixels, color, currentPixel, pixelsToFill)
 
 						currentPixel += pixelsToFill
-						remainingVoteSlots--
 
 						const isLastResponse = responseNumber === poll.responses - 1 && pollNumber >= nonEmptyPolls
 						if (!blind && !isLastResponse) {
@@ -242,6 +216,10 @@ function handleClassUpdate(webIo) {
 				if (!specialDisplay) {
 					text = `${newPollData.totalResponses}/${newPollData.totalResponders} `
 					if (newPollData.prompt) pollText = newPollData.prompt
+
+					const boardStartPixel = config.barPixels
+					const boardLength = config.boards * 32 * 8
+					fill(pixels, 0x000000, boardStartPixel, boardLength)
 
 					let display = displayBoard(pixels, text, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
 					if (display) boardIntervals.push(display)
