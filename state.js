@@ -81,11 +81,6 @@ let state = {
 		active: false,
 		sound: false
 	},
-	permissionCache: {
-		apiKey: null,
-		classId: null,
-		expiresAt: 0
-	},
 	sounds: loadSounds(),
 	isPlayingSound: false,
 	BOARD_WIDTH,

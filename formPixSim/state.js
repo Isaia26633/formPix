@@ -3,7 +3,16 @@
  */
 
 const fs = require('fs');
-const ws281x = require('rpi-ws281x-native');
+
+// Mock rpi-ws281x-native for the simulator environment
+const ws281x = Object.assign(
+	(numPixels) => ({ array: new Uint32Array(numPixels) }),
+	{
+		stripType: new Proxy({}, { get: (_, key) => key }),
+		render: () => {}
+	}
+);
+
 const { loadSounds } = require('./utils/soundUtils');
 const env = require('dotenv');
 const { io } = require('socket.io-client');
@@ -82,7 +91,6 @@ let state = {
 		sound: false
 	},
 	sounds: loadSounds(),
-	isPlayingSound: false,
 	BOARD_WIDTH,
 	BOARD_HEIGHT,
 	REQUIRED_PERMISSION
