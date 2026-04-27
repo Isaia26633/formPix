@@ -256,12 +256,13 @@ function handleClassUpdate(webIo) {
 					if (shouldRedrawBoard) {
 						const boardStartPixel = config.barPixels
 						const boardLength = config.boards * 32 * 8
+						const counterLength = getStringColumnLength(text)
 						fill(pixels, 0x000000, boardStartPixel, boardLength)
 
-						let display = displayBoard(pixels, text, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x)
+						let display = displayBoard(pixels, text, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x, 0, counterLength)
 						if (display) boardIntervals.push(display)
 
-						display = displayBoard(pixels, pollText, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x, getStringColumnLength(text))
+						display = displayBoard(pixels, pollText, 0xFFFFFF, 0x000000, config, boardIntervals, ws281x, counterLength)
 						if (display) boardIntervals.push(display)
 
 						state.lastPollBoardRenderKey = nextBoardRenderKey
