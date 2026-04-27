@@ -89,6 +89,9 @@ function handleSetClass(socket, boardIntervals) {
 
 		if (userClassId == null) {
 			const { pixels, config, ws281x } = state;
+			state.pollLockActive = false
+			state.pollData = {}
+			state.lastPollBoardRenderKey = null
 			fill(pixels, 0x000000, 0, config.barPixels)
 
 			logger.info('No active class - cleared display');
