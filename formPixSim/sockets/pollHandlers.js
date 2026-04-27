@@ -117,7 +117,7 @@ function handleClassUpdate(webIo) {
 						}
 
 						const upResponses = findResponse('Up')
-						if (upResponses && upResponses.responses == newPollData.totalResponders) {
+						if (upResponses && upResponses.responses == newPollData.totalResponders && newPollData.totalResponders > 0) {
 							gradient(pixels, 0x0000FF, 0xFF0000, 0, config.barPixels)
 							let text = ['Max Gamer', 'Skibidi Rizz!']
 							let display = displayBoard(pixels, text[Math.floor(Math.random() * text.length)], 0x00FF00, 0x000000, config, boardIntervals, ws281x)
