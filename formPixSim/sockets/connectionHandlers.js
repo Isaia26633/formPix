@@ -22,9 +22,8 @@ const logger = require('../utils/logger');
  */
 function handleConnectError(socket, boardIntervals) {
 	return (error) => {
-		const isTransientPollTransportError = error.message == 'xhr poll error';
-		if (isTransientPollTransportError) logger.warn('Formbar connection lost - retrying in 5s');
-		else logger.error(`Formbar connect error: ${error.message}`);
+		if (error.message == 'xhr poll error') logger.debug('No connection - retrying');
+		else logger.warn(`Socket connection error: ${error.message}`);
 
 		state.connected = false
 
@@ -32,12 +31,6 @@ function handleConnectError(socket, boardIntervals) {
 			clearInterval(boardInterval.interval);
 			return false
 		})
-
-		if (!isTransientPollTransportError) {
-			const { pixels, config, ws281x } = state;
-			fill(pixels, 0x000000)
-			ws281x.render()
-		}
 
 		setTimeout(() => {
 			socket.connect()
@@ -62,9 +55,10 @@ function handleConnect(socket, boardIntervals) {
 		const { pixels, config, ws281x } = state;
 		let display = displayBoard(pixels, config.formbarUrl.split('://')[1], 0xFFFFFF, 0x000000, config, boardIntervals, ws281x, 0, null, 100)
 		if (!display) return
-		boardIntervals.push(display)	
-	// Set timestamp for default message display
-	state.lastDisplayUpdate = new Date().toISOString();	}
+		boardIntervals.push(display)
+		// Set timestamp for default message display
+		state.lastDisplayUpdate = new Date().toISOString();
+	}
 }
 
 /**
