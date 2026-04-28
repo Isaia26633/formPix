@@ -129,7 +129,7 @@ function handleClassUpdate() {
 						}
 
 						const upResponses = findResponse('Up')
-						if (upResponses && upResponses.responses == newPollData.totalResponders) {
+						if (upResponses && upResponses.responses == newPollData.totalResponders && newPollData.totalResponders > 0) {
 							gradient(pixels, 0x0000FF, 0xFF0000, 0, config.barPixels)
 							let text = [
 								'Max Gamer',
