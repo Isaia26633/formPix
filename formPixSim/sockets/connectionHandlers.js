@@ -32,6 +32,10 @@ function handleConnectError(socket, boardIntervals) {
 			return false
 		})
 
+		const { pixels, config, ws281x } = state;
+		fill(pixels, 0x000000)
+		ws281x.render()
+
 		setTimeout(() => {
 			socket.connect()
 		}, 5000)
