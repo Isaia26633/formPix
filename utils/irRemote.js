@@ -7,6 +7,7 @@
 
 const { Worker } = require('worker_threads');
 const path = require('path');
+const state = require('../state');
 
 // IR button codes (hex values)
 const BUTTONS = {
@@ -98,7 +99,7 @@ class IRRemote {
             } catch {
                 console.warn(
                     '[IR Remote] Disabled: rpio is not installed (skipped optional dependency or wrong platform). ' +
-                        'On a Raspberry Pi run `npm install`. Set irPin=-1 in .env to silence this.'
+                    'On a Raspberry Pi run `npm install`. Set irPin=-1 in .env to silence this.'
                 );
                 return false;
             }
@@ -198,10 +199,16 @@ class IRRemote {
             }
         } else if (buttonName === 'play_pause') {
             try {
-                this.socket.emit('startPoll');
-                console.log('[IR Remote] Started poll');
+                const pollEnded = state.pollData && state.pollData.status === false;
+                if (pollEnded) {
+                    this.socket.emit('updatePoll', {});
+                    console.log('[IR Remote] updatePoll {} (poll already ended)');
+                } else {
+                    this.socket.emit('updatePoll', { status: false });
+                    console.log('[IR Remote] updatePoll { status: false } (end poll)');
+                }
             } catch (err) {
-                console.error('[IR Remote] Failed to emit "startPoll":', err);
+                console.error('[IR Remote] Failed to emit "updatePoll":', err);
             }
         }
     }
