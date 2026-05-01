@@ -93,6 +93,16 @@ class IRRemote {
         this.pin = parsedPin;
 
         try {
+            try {
+                require.resolve('rpio');
+            } catch {
+                console.warn(
+                    '[IR Remote] Disabled: rpio is not installed (skipped optional dependency or wrong platform). ' +
+                        'On a Raspberry Pi run `npm install`. Set irPin=-1 in .env to silence this.'
+                );
+                return false;
+            }
+
             this.worker = new Worker(path.join(__dirname, 'irWorker.js'), {
                 workerData: { pin: this.pin }
             });
