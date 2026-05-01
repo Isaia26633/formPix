@@ -178,22 +178,20 @@ class IRRemote {
         const preset = POLL_PRESETS[buttonName];
 
         if (preset) {
-            const textBox = preset.type === 1 ? 1 : 0;
             try {
-                this.socket.emit('startPoll',
-                    {
-                        prompt: preset.title,
-                        answers: preset.answers,
-                        blind: false,
-                        allowVoteChanges: false,
-                        weight: 1,
-                        tags: [],
-                        excludedRespondents: [],
-                        indeterminate: [],
-                        allowTextResponses: textBox,
-                        allowMultipleResponses: false
-                    }
-                );
+                // Object form (preferred): matches formbar startPoll API
+                this.socket.emit('startPoll', {
+                    prompt: preset.title,
+                    answers: preset.answers,
+                    blind: false,
+                    weight: 1,
+                    tags: [],
+                    excludedRespondents: [],
+                    indeterminate: [],
+                    allowVoteChanges: true,
+                    allowTextResponses: preset.type === 1,
+                    allowMultipleResponses: true
+                });
                 console.log(`[IR Remote] Started poll: ${preset.title}`);
             } catch (err) {
                 console.error('[IR Remote] Failed to emit "startPoll":', err);
